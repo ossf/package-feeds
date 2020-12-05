@@ -2,9 +2,19 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"encoding/xml"
+	"log"
 	"net/http"
+	"os"
+	"strings"
 	"time"
+
+	"github.com/jordan-wright/ossmalware/pkg/library"
+	"github.com/jordan-wright/ossmalware/pkg/processor"
+
+	"gocloud.dev/pubsub"
+	_ "gocloud.dev/pubsub/gcppubsub"
 )
 
 const (
@@ -17,14 +27,23 @@ type Response struct {
 }
 
 type Package struct {
+	Title        string      `xml:"title"`
 	ModifiedDate rfc1123Time `xml:"pubDate"`
 	Link         string      `xml:"link"`
-	Name         string      `xml:"-"`
-	Version      string      `xml:"-"`
 }
 
 type rfc1123Time struct {
 	time.Time
+}
+
+func (p *Package) Name() string {
+	// The XML Feed has a "Title" element that contains the package and version in it.
+	return strings.Split(p.Title, " ")[0]
+}
+
+func (p *Package) Version() string {
+	// The XML Feed has a "Title" element that contains the package and version in it.
+	return strings.Split(p.Title, " ")[1]
 }
 
 func (t *rfc1123Time) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
@@ -66,24 +85,43 @@ type PubSubMessage struct {
 // Poll receives a message from Cloud Pub/Sub. Ideally, this will be from a
 // Cloud Scheduler trigger every `delta`.
 func Poll(ctx context.Context, m PubSubMessage) error {
+	topicUrl := os.Getenv("OSSMALWARE_TOPIC_URL")
+	topic, err := pubsub.OpenTopic(ctx, topicUrl)
+	if err != nil {
+		panic(err)
+	}
+
 	packages, err := fetchPackages()
 	if err != nil {
 		return err
 	}
 	cutoff := time.Now().UTC().Add(-delta)
 	for _, pkg := range packages {
+		log.Println("Processing:", pkg.Name(), pkg.Version())
 		if pkg.ModifiedDate.Before(cutoff) {
 			continue
 		}
-		// TODO: publish the package up to a cloud pub/sub for processing
-		packages = append(packages, pkg)
+		msg := library.Package{
+			Name:    pkg.Name(),
+			Version: pkg.Version(),
+			Type:    processor.TypePyPI,
+		}
+		b, err := json.Marshal(msg)
+		if err != nil {
+			return err
+		}
+		if err := topic.Send(ctx, &pubsub.Message{
+			Body: b,
+		}); err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
 func main() {
-	err := Poll(context.Background(), PubSubMessage{})
-	if err != nil {
+	if err := Poll(context.Background(), PubSubMessage{}); err != nil {
 		panic(err)
 	}
 }
