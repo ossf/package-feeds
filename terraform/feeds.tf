@@ -1,12 +1,12 @@
 provider "google" {
-  project     = "ossf-malware-analysis"
-  region      = "us-central1"
+  project = var.project
+  region  = var.region
 }
 
 terraform {
   backend "gcs" {
-    bucket  = "ossf-feeds-tf-state"
-    prefix  = "terraform/state"
+    bucket = "ossf-feeds-tf-state"
+    prefix = "terraform/state"
   }
 }
 
@@ -29,5 +29,6 @@ resource "google_pubsub_topic" "feed-topic" {
 }
 
 resource "google_storage_bucket" "feed-functions-bucket" {
-  name = "feed-functions-bucket"
+  name = "${var.project}-feed-functions-bucket"
+  force_destroy = true
 }
