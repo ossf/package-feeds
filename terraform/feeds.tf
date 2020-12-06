@@ -29,6 +29,6 @@ resource "google_pubsub_topic" "feed-topic" {
 }
 
 resource "google_storage_bucket" "feed-functions-bucket" {
-  name = "${var.project}-feed-functions-bucket"
+  name          = "${var.project}-feed-functions-bucket"
   force_destroy = true
 }

@@ -1,2 +1,2 @@
-project = "oss-malware-analysis"
+project = "ossf-malware-analysis"
 region  = "us-central1"
