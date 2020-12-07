@@ -6,9 +6,6 @@ on:
     - main
   pull_request:
 
-env:
-  GOOGLE_APPLICATION_CREDENTIALS: /credentials.json
-
 jobs:
   terraform:
     name: 'Terraform'
@@ -25,22 +22,29 @@ jobs:
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
 
+    - name: Setup Environment
+      run: echo "GOOGLE_APPLICATION_CREDENTIALS=${GITHUB_WORKSPACE}/credentials.json" >> $GITHUB_ENV;
+
     - name: Setup Credentials
-      run: echo ${{ secrets.TF_GOOGLE_CREDENTIALS }} | base64 -d > /credentials.json
-
-    - name: Terraform Init
-      run: terraform init
-
-    - name: Terraform Format
-      run: terraform fmt -check
+      run: echo ${{ secrets.TF_GOOGLE_CREDENTIALS }} | base64 -d > "${GOOGLE_APPLICATION_CREDENTIALS}";
 
     - name: Generate the function archives
       run: cd feeds/pypi; zip pypi.zip *; cd ../../;
 
+    - name: Terraform Init
+      run: terraform init
+      working-directory: ./terraform
+
+    - name: Terraform Format
+      run: terraform fmt -check
+      working-directory: ./terraform
+
     - name: Terraform Plan
       run: terraform plan
+      working-directory: ./terraform
 
       # On push to main, build or change infrastructure according to Terraform configuration files
     - name: Terraform Apply
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: terraform apply -auto-approve
+      working-directory: ./terraform
