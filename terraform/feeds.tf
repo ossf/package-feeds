@@ -13,9 +13,19 @@ terraform {
 locals {
   services = [
     "cloudbuild.googleapis.com",
-    "cloudfunctions.googleapis.com",
+    "run.googleapis.com",
     "cloudscheduler.googleapis.com",
   ]
+}
+
+resource "google_service_account" "run-invoker-account" {
+  account_id   = "run-invoker-sa"
+  display_name = "Feed Run Invoker"
+}
+
+resource "google_project_iam_member" "run-invoker-iam" {
+  role   = "roles/run.invoker"
+  member = "serviceAccount:${google_service_account.run-invoker-account.email}"
 }
 
 resource "google_project_service" "services" {

@@ -25,11 +25,21 @@ jobs:
     - name: Setup Environment
       run: echo "GOOGLE_APPLICATION_CREDENTIALS=${GITHUB_WORKSPACE}/credentials.json" >> $GITHUB_ENV;
 
-    - name: Setup Credentials
-      run: echo ${{ secrets.TF_GOOGLE_CREDENTIALS }} | base64 -d > "${GOOGLE_APPLICATION_CREDENTIALS}";
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@master
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        service_account_key: ${{ secrets.TF_GOOGLE_CREDENTIALS }}
+        export_default_credentials: true
 
-    - name: Generate the function archives
-      run: cd feeds/pypi; zip pypi.zip *; cd ../../;
+    - name: Configure gcloud
+      run: gcloud config set project ${{ secrets.GOOGLE_PROJECT_ID }}
+
+    - name: Generate the images for each feed 
+      run: |
+        cd feeds/pypi;
+        gcloud builds submit --tag gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/feeds-pypi;
+        cd ../../;
 
     - name: Terraform Init
       run: terraform init
@@ -48,3 +58,14 @@ jobs:
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: terraform apply -auto-approve
       working-directory: ./terraform
+
+    - name: Deploy to Cloud Run
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        cd feeds/pypi;
+        gcloud run deploy \
+          pypi-run-srv \
+          --platform managed \
+          --region us-central1 \
+          --image gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/feeds-pypi;
+        cd ../../;
