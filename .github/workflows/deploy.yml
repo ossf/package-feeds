@@ -37,14 +37,8 @@ jobs:
 
     - name: Generate the images for each feed 
       run: |
-        cd feeds/pypi;
-        gcloud builds submit --tag gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/feeds-pypi;
-        cd ../../;
-        cd feeds/npm;
-        gcloud builds submit --tag gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/feeds-npm;
-        cd ../../;
-        cd feeds/rubygems;
-        gcloud builds submit --tag gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/feeds-rubygems;
+        cd cmd/scheduled-feed;
+        gcloud builds submit --tag gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/scheduled-feeds;
         cd ../../;
 
     - name: Terraform Init
@@ -68,24 +62,10 @@ jobs:
     - name: Deploy to Cloud Run
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
-        cd feeds/pypi;
+        cd cmd/scheduled-feed;
         gcloud run deploy \
-          pypi-run-srv \
+          scheduled-feeds-srv \
           --platform managed \
           --region us-central1 \
-          --image gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/feeds-pypi;
-        cd ../../;
-        cd feeds/npm;
-        gcloud run deploy \
-          npm-run-srv \
-          --platform managed \
-          --region us-central1 \
-          --image gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/feeds-npm;
-        cd ../../;
-        cd feeds/rubygems;
-        gcloud run deploy \
-          ruby-run-srv \
-          --platform managed \
-          --region us-central1 \
-          --image gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/feeds-rubygems;
+          --image gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/scheduled-feeds;
         cd ../../;
