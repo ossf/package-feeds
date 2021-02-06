@@ -33,7 +33,7 @@ func Poll(w http.ResponseWriter, r *http.Request) {
 			"name":         pkg.Name,
 			"feed":         pkg.Type,
 			"created_date": pkg.CreatedDate,
-		}).Print("processing package")
+		}).Print("sending package upstream")
 		// b, err := json.Marshal(pkg)
 		// if err != nil {
 		// 	log.Printf("error marshaling package: %#v", pkg)

@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// ScheduledFeeds is a registry of feeds that should be run on a schedule
 var ScheduledFeeds = make(map[string]feeds.ScheduledFeed)
 
 func init() {
@@ -20,6 +21,7 @@ func init() {
 	ScheduledFeeds[crates.FeedName] = crates.Feed{}
 }
 
+// PollScheduledFeeds fetches the latest packages from each registered feed
 func PollScheduledFeeds(cutoff time.Time) ([]*feeds.Package, error) {
 	packages := []*feeds.Package{}
 	for name, feed := range ScheduledFeeds {
