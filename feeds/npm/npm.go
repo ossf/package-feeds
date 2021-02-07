@@ -71,7 +71,7 @@ func fetchPackages() ([]*Package, error) {
 	return rssResponse.Packages, nil
 }
 
-// Gets the package version from the NPM
+// Gets the package version from the NPM.
 func fetchVersionInformation(packageName string) (string, error) {
 	client := &http.Client{
 		Timeout: 10 * time.Second,
