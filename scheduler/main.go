@@ -72,15 +72,15 @@ type pkgManager struct {
 
 var supportedPkgManagers = map[string]pkgManager{
 	"pypi": pkgManager{
-		image:      "python:3",
+		image:      "gcr.io/ossf-malware-analysis/python",
 		commandFmt: "pip3 install --no-deps %s==%s",
 	},
 	"npm": pkgManager{
-		image:      "node",
+		image:      "gcr.io/ossf-malware-analysis/node",
 		commandFmt: "npm init --force && npm install %s@%s",
 	},
 	"rubygems": pkgManager{
-		image:      "ruby",
+		image:      "gcr.io/ossf-malware-analysis/ruby",
 		commandFmt: "gem install %s -v %s",
 	},
 }
@@ -141,7 +141,7 @@ func createPod(name, version, packageType string) error {
 							Image:   image,
 							Command: []string{"/bin/bash", "-c"},
 							Args: []string{
-								"set -ex && mkdir /app && cd /app && " + command,
+								"set -ex; " + command,
 							},
 							Resources: v1.ResourceRequirements{
 								Requests: v1.ResourceList{

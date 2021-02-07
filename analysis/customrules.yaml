@@ -33,7 +33,7 @@ customRules:
       desc: Detect file access outside the workingdir
       condition: >
         (open_read and 
-         not fd.name startswith /app/ and
+         not (fd.name startswith /app/ or fd.name startswith /home/fakeuser/app/) and
          not fd.name startswith /tmp/ and
          not fd.name startswith /usr/local/lib/ and
          not fd.name startswith /usr/lib/ and
