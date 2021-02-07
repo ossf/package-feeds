@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,18 +12,19 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"gocloud.dev/pubsub"
 	_ "gocloud.dev/pubsub/gcppubsub"
 )
 
 var delta = 5 * time.Minute
 
 func Poll(w http.ResponseWriter, r *http.Request) {
-	// topicURL := os.Getenv("OSSMALWARE_TOPIC_URL")
-	// topic, err := pubsub.OpenTopic(context.TODO(), topicURL)
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
+	topicURL := os.Getenv("OSSMALWARE_TOPIC_URL")
+	topic, err := pubsub.OpenTopic(context.TODO(), topicURL)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	cutoff := time.Now().UTC().Add(-delta)
 	pkgs, err := scheduler.PollScheduledFeeds(cutoff)
 	if err != nil {
@@ -34,19 +37,19 @@ func Poll(w http.ResponseWriter, r *http.Request) {
 			"feed":         pkg.Type,
 			"created_date": pkg.CreatedDate,
 		}).Print("sending package upstream")
-		// b, err := json.Marshal(pkg)
-		// if err != nil {
-		// 	log.Printf("error marshaling package: %#v", pkg)
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
-		// if err := topic.Send(context.TODO(), &pubsub.Message{
-		// 	Body: b,
-		// }); err != nil {
-		// 	log.Printf("error sending package to upstream topic %s: %v", topicURL, err)
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
+		b, err := json.Marshal(pkg)
+		if err != nil {
+			log.Printf("error marshaling package: %#v", pkg)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if err := topic.Send(context.TODO(), &pubsub.Message{
+			Body: b,
+		}); err != nil {
+			log.Printf("error sending package to upstream topic %s: %v", topicURL, err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 }
 
