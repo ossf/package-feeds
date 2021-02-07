@@ -24,10 +24,6 @@ type Package struct {
 	Link        string      `xml:"link"`
 }
 
-type rfc1123Time struct {
-	time.Time
-}
-
 func (p *Package) Name() string {
 	// The XML Feed has a "Title" element that contains the package and version in it.
 	return strings.Split(p.Title, " ")[0]
@@ -36,6 +32,10 @@ func (p *Package) Name() string {
 func (p *Package) Version() string {
 	// The XML Feed has a "Title" element that contains the package and version in it.
 	return strings.Split(p.Title, " ")[1]
+}
+
+type rfc1123Time struct {
+	time.Time
 }
 
 func (t *rfc1123Time) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {

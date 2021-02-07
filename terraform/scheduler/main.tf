@@ -1,6 +1,6 @@
 resource "google_cloud_scheduler_job" "trigger-ecosystem-scheduler" {
-  name        = "trigger-${var.pkg-ecosystem}-scheduler"
-  description = "Scheduler for fetching new ${var.pkg-ecosystem} packages"
+  name        = "trigger-feeds-scheduler"
+  description = "Scheduler for packages from feeds"
   schedule    = "*/5 * * * *"
 
   http_target {
@@ -14,13 +14,13 @@ resource "google_cloud_scheduler_job" "trigger-ecosystem-scheduler" {
 }
 
 resource "google_cloud_run_service" "run-scheduler" {
-  name     = "${var.pkg-ecosystem}-run-srv"
+  name     = "scheduled-feeds-srv"
   location = var.region
 
   template {
     spec {
       containers {
-        image = "gcr.io/${var.project}/feeds-${var.pkg-ecosystem}"
+        image = "gcr.io/${var.project}/scheduled-feeds"
         env {
           name  = "OSSMALWARE_TOPIC_URL"
           value = var.pubsub-topic-feed-id
