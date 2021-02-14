@@ -7,10 +7,8 @@ These are:
 [Feeds](./feeds/) to watch package registries (PyPI, NPM, etc.) for changes to packages
 and to make that data available via a single standard interface.
 
-[Analysis](./analysis/) to collect package behavior data and make it available publicly
-for researchers.
-
-[Scheduler](./scheduler/) to create jobs for Analysis based on the data from Feeds.
+This repo used to contain several other projects, which have since been split out into
+github.com/ossf/package-analysis.
 
 The goal is for all of these components to work together and provide extensible, community-run
 infrastructure to study behavior of open source packages and to look for malicious software.
