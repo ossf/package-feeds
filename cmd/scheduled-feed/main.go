@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var delta = 5 * time.Minute
+const delta = 5 * time.Minute
 
 // FeedHandler is a handler that fetches new packages from various feeds
 type FeedHandler struct {
@@ -26,6 +26,7 @@ func (handler *FeedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cutoff := time.Now().UTC().Add(-delta)
 	pkgs, err := handler.scheduler.Poll(cutoff)
 	if err != nil {
+		log.Errorf("error polling for new packages: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
