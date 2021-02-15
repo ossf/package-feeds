@@ -35,7 +35,7 @@ jobs:
       run: gcloud config set project ${{ secrets.GOOGLE_PROJECT_ID }}
 
     - name: Generate the images for each feed 
-      run: gcloud builds submit --config cloudbuild.yaml;
+      run: gcloud builds submit --tag gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/scheduled-feeds
 
     - name: Terraform Init
       run: terraform init

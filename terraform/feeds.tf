@@ -39,11 +39,6 @@ resource "google_pubsub_topic" "feed-topic" {
   name = "feed-topic"
 }
 
-resource "google_storage_bucket" "feed-functions-bucket" {
-  name          = "${var.project}-feed-functions-bucket"
-  force_destroy = true
-}
-
 module "feed_scheduler" {
   source = "./scheduler"
 
