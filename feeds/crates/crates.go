@@ -60,9 +60,10 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 			continue
 		}
 		pkgs = append(pkgs, &feeds.Package{
-			Name:    pkg.Name,
-			Version: pkg.NewestVersion,
-			Type:    FeedName,
+			Name:        pkg.Name,
+			CreatedDate: pkg.UpdatedAt,
+			Version:     pkg.NewestVersion,
+			Type:        FeedName,
 		})
 	}
 	return pkgs, nil
