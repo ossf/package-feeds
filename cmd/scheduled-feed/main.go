@@ -9,24 +9,22 @@ import (
 	"time"
 
 	"github.com/ossf/package-feeds/feeds/scheduler"
+	"github.com/ossf/package-feeds/publisher"
 
 	log "github.com/sirupsen/logrus"
-
-	"gocloud.dev/pubsub"
-	_ "gocloud.dev/pubsub/gcppubsub"
 )
 
 var delta = 5 * time.Minute
 
-func Poll(w http.ResponseWriter, r *http.Request) {
-	topicURL := os.Getenv("OSSMALWARE_TOPIC_URL")
-	topic, err := pubsub.OpenTopic(context.TODO(), topicURL)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+// FeedHandler is a handler that fetches new packages from various feeds
+type FeedHandler struct {
+	scheduler *scheduler.Scheduler
+	pub       publisher.Publisher
+}
+
+func (handler *FeedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cutoff := time.Now().UTC().Add(-delta)
-	pkgs, err := scheduler.PollScheduledFeeds(cutoff)
+	pkgs, err := handler.scheduler.Poll(cutoff)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -43,10 +41,8 @@ func Poll(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if err := topic.Send(context.TODO(), &pubsub.Message{
-			Body: b,
-		}); err != nil {
-			log.Printf("error sending package to upstream topic %s: %v", topicURL, err)
+		if err := handler.pub.Send(context.Background(), b); err != nil {
+			log.Printf("error sending package to upstream publisher %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -54,12 +50,29 @@ func Poll(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	pubURL := os.Getenv("OSSMALWARE_TOPIC_URL")
+	var pub publisher.Publisher
+	var err error
+	if pubURL == "" {
+		pub = publisher.NewStdoutPublisher()
+	} else {
+		pub, err = publisher.NewPubSub(context.TODO(), pubURL)
+		if err != nil {
+			log.Fatal("error creating gcp pubsub topic with url %q: %v", pubURL, err)
+		}
+	}
+	log.Infof("using %q publisher", pub.Name())
+	sched := scheduler.New()
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 	log.Printf("listening on port %s", port)
-	http.HandleFunc("/", Poll)
+	handler := &FeedHandler{
+		scheduler: sched,
+		pub:       pub,
+	}
+	http.Handle("/", handler)
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), nil); err != nil {
 		log.Fatal(err)
 	}

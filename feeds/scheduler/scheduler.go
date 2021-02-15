@@ -11,20 +11,29 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// ScheduledFeeds is a registry of feeds that should be run on a schedule
-var ScheduledFeeds = make(map[string]feeds.ScheduledFeed)
-
-func init() {
-	ScheduledFeeds[pypi.FeedName] = pypi.Feed{}
-	ScheduledFeeds[npm.FeedName] = npm.Feed{}
-	ScheduledFeeds[rubygems.FeedName] = rubygems.Feed{}
-	ScheduledFeeds[crates.FeedName] = crates.Feed{}
+// Scheduler is a registry of feeds that should be run on a schedule
+type Scheduler struct {
+	registry map[string]feeds.ScheduledFeed
 }
 
-// PollScheduledFeeds fetches the latest packages from each registered feed
-func PollScheduledFeeds(cutoff time.Time) ([]*feeds.Package, error) {
+// New returns a new Scheduler with available feeds registered
+func New() *Scheduler {
+	registry := map[string]feeds.ScheduledFeed{
+		pypi.FeedName:     pypi.Feed{},
+		npm.FeedName:      npm.Feed{},
+		rubygems.FeedName: rubygems.Feed{},
+		crates.FeedName:   crates.Feed{},
+	}
+	s := &Scheduler{
+		registry: registry,
+	}
+	return s
+}
+
+// Poll fetches the latest packages from each registered feed
+func (s *Scheduler) Poll(cutoff time.Time) ([]*feeds.Package, error) {
 	packages := []*feeds.Package{}
-	for name, feed := range ScheduledFeeds {
+	for name, feed := range s.registry {
 		logger := log.WithField("feed", name)
 		pkgs, err := feed.Latest(cutoff)
 		if err != nil {
