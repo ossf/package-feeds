@@ -8,7 +8,7 @@ These are:
 and to make that data available via a single standard interface.
 
 This repo used to contain several other projects, which have since been split out into
-github.com/ossf/package-analysis.
+[github.com/ossf/package-analysis](https://github.com/ossf/package-analysis).
 
 The goal is for all of these components to work together and provide extensible, community-run
 infrastructure to study behavior of open source packages and to look for malicious software.
