@@ -35,16 +35,7 @@ jobs:
       run: gcloud config set project ${{ secrets.GOOGLE_PROJECT_ID }}
 
     - name: Generate the images for each feed 
-      run: |
-        cd feeds/pypi;
-        gcloud builds submit --tag gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/feeds-pypi;
-        cd ../../;
-        cd feeds/npm;
-        gcloud builds submit --tag gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/feeds-npm;
-        cd ../../;
-        cd feeds/rubygems;
-        gcloud builds submit --tag gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/feeds-rubygems;
-        cd ../../;
+      run: gcloud builds submit --tag gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/scheduled-feeds
 
     - name: Terraform Init
       run: terraform init
@@ -58,33 +49,16 @@ jobs:
       run: terraform plan
       working-directory: ./terraform
 
-      # On push to main, build or change infrastructure according to Terraform configuration files
     - name: Terraform Apply
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      if: github.ref == 'refs/heads/main'
       run: terraform apply -auto-approve
       working-directory: ./terraform
 
     - name: Deploy to Cloud Run
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      if: github.ref == 'refs/heads/main'
       run: |
-        cd feeds/pypi;
         gcloud run deploy \
-          pypi-run-srv \
+          scheduled-feeds-srv \
           --platform managed \
           --region us-central1 \
-          --image gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/feeds-pypi;
-        cd ../../;
-        cd feeds/npm;
-        gcloud run deploy \
-          npm-run-srv \
-          --platform managed \
-          --region us-central1 \
-          --image gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/feeds-npm;
-        cd ../../;
-        cd feeds/rubygems;
-        gcloud run deploy \
-          ruby-run-srv \
-          --platform managed \
-          --region us-central1 \
-          --image gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/feeds-rubygems;
-        cd ../../;
+          --image gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/scheduled-feeds;

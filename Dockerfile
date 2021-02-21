@@ -5,9 +5,9 @@ FROM golang:1.15-buster as builder
 # Create and change to the app directory.
 WORKDIR /app
 
-# Retrieve application dependencies.
-# This allows the container build to reuse cached dependencies.
-# Expecting to copy go.mod and if present go.sum.
+# # Retrieve application dependencies.
+# # This allows the container build to reuse cached dependencies.
+# # Expecting to copy go.mod and if present go.sum.
 COPY go.* ./
 RUN go mod download
 
@@ -15,7 +15,7 @@ RUN go mod download
 COPY . ./
 
 # Build the binary.
-RUN go build -mod=readonly -v -o server
+RUN go build -mod=readonly -v -o server ./cmd/scheduled-feed
 
 # Use the official Debian slim image for a lean production container.
 # https://hub.docker.com/_/debian

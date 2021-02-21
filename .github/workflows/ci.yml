@@ -31,7 +31,7 @@ jobs:
            cd feeds/npm/
            make verify
 
-    - name: npm feeds docker build
-      run: |
-           cd feeds/npm/
-           make image
+    # - name: npm feeds docker build
+    #   run: |
+    #        cd feeds/npm/
+    #        make image

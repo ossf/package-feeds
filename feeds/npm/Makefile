@@ -3,7 +3,7 @@ GO ?= go
 PROJECT := package-feeds-npm
 BIN := bin
 GOOS   ?= $(shell uname | tr A-Z a-z)
-IMAGE ?= $(PROJECT):latest
+# IMAGE ?= $(PROJECT):latest
 
 GOLANGCI_LINT_VERSION = v1.35.2
 $(BIN_DIR):
@@ -41,9 +41,9 @@ go-mod: ## Cleanup and verify go modules
 		$(GO) mod tidy && \
 		$(GO) mod verify
 
-.PHONY: image
-image: ## Build the container image
-	docker build -t $(IMAGE) .
+# .PHONY: image
+# image: ## Build the container image
+# 	docker build -t $(IMAGE) .
 
 # Verification targets
 .PHONY: verify

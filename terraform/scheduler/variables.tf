@@ -1,4 +1,3 @@
-variable "pkg-ecosystem" {}
 variable "project" {}
 variable "region" {}
 variable "service-account-email" {}

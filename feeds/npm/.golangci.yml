@@ -29,7 +29,7 @@ linters:
     - goheader
     - goimports
     - golint
-    - gomnd
+    # - gomnd
     - gomodguard
     - goprintffuncname
     - gosec
@@ -61,7 +61,7 @@ linters:
     - unused
     - varcheck
     - whitespace
-    - wrapcheck
+    # - wrapcheck
     # - exhaustivestruct
     # - forbidigo
     # - funlen
