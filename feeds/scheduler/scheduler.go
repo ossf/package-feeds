@@ -30,22 +30,38 @@ func New() *Scheduler {
 	return s
 }
 
+type pollResult struct {
+	name     string
+	feed     feeds.ScheduledFeed
+	packages []*feeds.Package
+	err      error
+}
+
 // Poll fetches the latest packages from each registered feed
-func (s *Scheduler) Poll(cutoff time.Time) ([]*feeds.Package, error) {
-	packages := []*feeds.Package{}
+func (s *Scheduler) Poll(cutoff time.Time) ([]*feeds.Package, []error) {
+	results := make(chan pollResult)
 	for name, feed := range s.registry {
-		logger := log.WithField("feed", name)
-		pkgs, err := feed.Latest(cutoff)
-		if err != nil {
-			logger.WithError(err).Error("error fetching packages")
-			return nil, err
-		}
-		processed := 0
-		for _, pkg := range pkgs {
-			processed++
-			packages = append(packages, pkg)
-		}
-		logger.WithField("num_processed", processed).Print("processed packages")
+		go func(name string, feed feeds.ScheduledFeed) {
+			result := pollResult{
+				name: name,
+				feed: feed,
+			}
+			result.packages, result.err = feed.Latest(cutoff)
+			results <- result
+		}(name, feed)
 	}
-	return packages, nil
+	errs := []error{}
+	packages := []*feeds.Package{}
+	for i := 0; i < len(s.registry); i++ {
+		result := <-results
+		logger := log.WithField("feed", result.name)
+		if result.err != nil {
+			logger.WithError(result.err).Error("error fetching packages")
+			errs = append(errs, result.err)
+			continue
+		}
+		packages = append(packages, result.packages...)
+		logger.WithField("num_processed", len(result.packages)).Print("processed packages")
+	}
+	return packages, errs
 }
