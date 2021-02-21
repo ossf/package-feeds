@@ -29,8 +29,6 @@ func (handler *FeedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		for _, err := range errs {
 			log.Errorf("error polling for new packages: %v", err)
 		}
-		http.Error(w, "error fetching packages - see logs for more information", http.StatusInternalServerError)
-		return
 	}
 	for _, pkg := range pkgs {
 		log.WithFields(log.Fields{
