@@ -1,30 +1,16 @@
 version: 2
 updates:
-  - package-ecosystem: "go:modules"
-    directory: "/scheduler"
-    schedule:
+- package-ecosystem: gomod
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
       interval: "daily"
-  - package-ecosystem: "go:modules"
-    directory: "/analysis"
-    schedule:
-      interval: "daily"
-  - package-ecosystem: "go:modules"
-    directory: "/feeds/pypi"
-    schedule:
-      interval: "daily"
-  - package-ecosystem: "go:modules"
-    directory: "/feeds/npm"
-    schedule:
-      interval: "daily"
-  - package-ecosystem: "docker"
-    directory: "/feeds/pypi"
-    schedule:
-      interval: "daily"
-  - package-ecosystem: "docker"
-    directory: "/feeds/npm"
-    schedule:
-      interval: "daily"
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "daily"
+- package-ecosystem: docker
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
