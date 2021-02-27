@@ -24,13 +24,15 @@ type FeedHandler struct {
 
 func (handler *FeedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cutoff := time.Now().UTC().Add(-delta)
-	pkgs, err := handler.scheduler.Poll(cutoff)
-	if err != nil {
-		log.Errorf("error polling for new packages: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	pkgs, errs := handler.scheduler.Poll(cutoff)
+	if len(errs) > 0 {
+		for _, err := range errs {
+			log.Errorf("error polling for new packages: %v", err)
+		}
 	}
+	processed := 0
 	for _, pkg := range pkgs {
+		processed++
 		log.WithFields(log.Fields{
 			"name":         pkg.Name,
 			"feed":         pkg.Type,
@@ -48,6 +50,11 @@ func (handler *FeedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if len(errs) > 0 {
+		http.Error(w, "error polling for packages - see logs for more information", http.StatusInternalServerError)
+		return
+	}
+	w.Write([]byte(fmt.Sprintf("%d packages processed", processed)))
 }
 
 func main() {
@@ -59,7 +66,7 @@ func main() {
 	} else {
 		pub, err = publisher.NewPubSub(context.TODO(), pubURL)
 		if err != nil {
-			log.Fatal("error creating gcp pubsub topic with url %q: %v", pubURL, err)
+			log.Fatalf("error creating gcp pubsub topic with url %q: %v", pubURL, err)
 		}
 	}
 	log.Infof("using %q publisher", pub.Name())
