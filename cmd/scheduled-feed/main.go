@@ -30,7 +30,9 @@ func (handler *FeedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			log.Errorf("error polling for new packages: %v", err)
 		}
 	}
+	processed := 0
 	for _, pkg := range pkgs {
+		processed++
 		log.WithFields(log.Fields{
 			"name":         pkg.Name,
 			"feed":         pkg.Type,
@@ -48,6 +50,11 @@ func (handler *FeedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if len(errs) > 0 {
+		http.Error(w, "error polling for packages - see logs for more information", http.StatusInternalServerError)
+		return
+	}
+	w.Write([]byte(fmt.Sprintf("%d packages processed", processed)))
 }
 
 func main() {
