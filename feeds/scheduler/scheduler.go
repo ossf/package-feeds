@@ -7,6 +7,7 @@ import (
 	"github.com/ossf/package-feeds/feeds/crates"
 	"github.com/ossf/package-feeds/feeds/goproxy"
 	"github.com/ossf/package-feeds/feeds/npm"
+	"github.com/ossf/package-feeds/feeds/nuget"
 	"github.com/ossf/package-feeds/feeds/pypi"
 	"github.com/ossf/package-feeds/feeds/rubygems"
 	log "github.com/sirupsen/logrus"
@@ -25,6 +26,7 @@ func New() *Scheduler {
 		rubygems.FeedName: rubygems.Feed{},
 		crates.FeedName:   crates.Feed{},
 		goproxy.FeedName:  goproxy.Feed{},
+		nuget.FeedName:    nuget.Feed{},
 	}
 	s := &Scheduler{
 		registry: registry,
