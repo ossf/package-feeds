@@ -15,7 +15,7 @@ const (
 	catalogServiceType = "Catalog/3.0.0"
 )
 
-type nugetServiceIndex struct {
+type serviceIndex struct {
 	Services []*nugetService `json:"resources"`
 }
 
@@ -46,27 +46,25 @@ type nugetPackageDetails struct {
 	Created   time.Time `json:"published"`
 }
 
-var httpClient http.Client = http.Client{
+var httpClient = http.Client{
 	Timeout: 10 * time.Second,
 }
 
 func fetchCatalogService() (*nugetService, error) {
 	resp, err := httpClient.Get(feedURL)
-
 	if err != nil {
 		return nil, err
 	}
 
 	defer resp.Body.Close()
 
-	serviceIndex := &nugetServiceIndex{}
-	err = json.NewDecoder(resp.Body).Decode(serviceIndex)
-
+	directory := &serviceIndex{}
+	err = json.NewDecoder(resp.Body).Decode(directory)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, service := range serviceIndex.Services {
+	for _, service := range directory.Services {
 		if service.Type == catalogServiceType {
 			return service, nil
 		}
@@ -77,7 +75,6 @@ func fetchCatalogService() (*nugetService, error) {
 
 func fetchCatalogPages(catalogURL string) ([]*catalogPage, error) {
 	resp, err := httpClient.Get(catalogURL)
-
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +83,6 @@ func fetchCatalogPages(catalogURL string) ([]*catalogPage, error) {
 
 	c := &catalog{}
 	err = json.NewDecoder(resp.Body).Decode(c)
-
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +92,6 @@ func fetchCatalogPages(catalogURL string) ([]*catalogPage, error) {
 
 func fetchCatalogPage(url string) ([]*catalogLeaf, error) {
 	resp, err := httpClient.Get(url)
-
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +100,6 @@ func fetchCatalogPage(url string) ([]*catalogLeaf, error) {
 
 	page := &catalogPage{}
 	err = json.NewDecoder(resp.Body).Decode(page)
-
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +109,6 @@ func fetchCatalogPage(url string) ([]*catalogLeaf, error) {
 
 func fetchPackageInfo(url string) (*nugetPackageDetails, error) {
 	resp, err := httpClient.Get(url)
-
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +117,6 @@ func fetchPackageInfo(url string) (*nugetPackageDetails, error) {
 
 	packageDetail := &nugetPackageDetails{}
 	err = json.NewDecoder(resp.Body).Decode(packageDetail)
-
 	if err != nil {
 		return nil, err
 	}
@@ -141,13 +133,11 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}
 
 	catalogService, err := fetchCatalogService()
-
 	if err != nil {
 		return nil, err
 	}
 
 	catalogPages, err := fetchCatalogPages(catalogService.URI)
-
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +148,6 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 		}
 
 		page, err := fetchCatalogPage(catalogPage.URI)
-
 		if err != nil {
 			return nil, err
 		}
@@ -173,7 +162,6 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 			}
 
 			packageCreationDetail, err := fetchPackageInfo(catalogLeafNode.URI)
-
 			if err != nil {
 				return nil, err
 			}
