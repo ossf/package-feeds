@@ -11,8 +11,14 @@ import (
 
 const (
 	FeedName           = "nuget"
-	feedURL            = "https://api.nuget.org/v3/index.json"
 	catalogServiceType = "Catalog/3.0.0"
+)
+
+var (
+	feedURL    = "https://api.nuget.org/v3/index.json"
+	httpClient = http.Client{
+		Timeout: 10 * time.Second,
+	}
 )
 
 type serviceIndex struct {
@@ -44,10 +50,6 @@ type nugetPackageDetails struct {
 	PackageID string    `json:"id"`
 	Version   string    `json:"version"`
 	Created   time.Time `json:"published"`
-}
-
-var httpClient = http.Client{
-	Timeout: 10 * time.Second,
 }
 
 func fetchCatalogService() (*nugetService, error) {
