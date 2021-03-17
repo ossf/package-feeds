@@ -10,6 +10,8 @@ import (
 
 	"github.com/ossf/package-feeds/feeds/scheduler"
 	"github.com/ossf/package-feeds/publisher"
+	"github.com/ossf/package-feeds/publisher/gcppubsub"
+	"github.com/ossf/package-feeds/publisher/stdout"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -62,9 +64,9 @@ func main() {
 	var pub publisher.Publisher
 	var err error
 	if pubURL == "" {
-		pub = publisher.NewStdoutPublisher()
+		pub = stdout.New()
 	} else {
-		pub, err = publisher.NewPubSub(context.TODO(), pubURL)
+		pub, err = gcppubsub.New(context.TODO(), pubURL)
 		if err != nil {
 			log.Fatalf("error creating gcp pubsub topic with url %q: %v", pubURL, err)
 		}
