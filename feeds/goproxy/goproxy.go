@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -78,16 +77,11 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 		return pkgs, fmt.Errorf("error fetching packages: %w", err)
 	}
 	for _, pkg := range packages {
-		log.Println("Processing:", pkg.Title, pkg.Version)
-		if pkg.ModifiedDate.Before(cutoff) {
+		pkg, err := feeds.NewPackage(pkg.ModifiedDate, cutoff, pkg.Title, pkg.Version, FeedName)
+		if err != nil {
 			continue
 		}
-		pkgs = append(pkgs, &feeds.Package{
-			Name:        pkg.Title,
-			Version:     pkg.Version,
-			Type:        FeedName,
-			CreatedDate: pkg.ModifiedDate,
-		})
+		pkgs = append(pkgs, pkg)
 	}
 	return pkgs, nil
 }
