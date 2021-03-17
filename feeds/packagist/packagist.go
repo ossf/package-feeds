@@ -75,15 +75,11 @@ func fetchVersionInformation(cutoff time.Time, action actions) ([]*feeds.Package
 	pkgs := []*feeds.Package{}
 	for pkgName, versions := range versionResponse.Packages {
 		for _, version := range versions {
-			if version.Time.Before(cutoff) {
+			pkg, err := feeds.NewPackage(version.Time, cutoff, pkgName, version.Version, FeedName)
+			if err != nil {
 				continue
 			}
-			pkgs = append(pkgs, &feeds.Package{
-				Name:        pkgName,
-				Version:     version.Version,
-				CreatedDate: version.Time,
-				Type:        FeedName,
-			})
+			pkgs = append(pkgs, pkg)
 		}
 	}
 

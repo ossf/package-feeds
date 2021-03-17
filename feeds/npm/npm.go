@@ -98,19 +98,15 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 		return pkgs, err
 	}
 	for _, pkg := range packages {
-		if pkg.CreatedDate.Before(cutoff) {
-			continue
-		}
 		v, err := fetchVersionInformation(pkg.Title)
 		if err != nil {
 			return pkgs, fmt.Errorf("error in fetching version information: %w", err)
 		}
-		pkgs = append(pkgs, &feeds.Package{
-			Name:        pkg.Title,
-			Version:     v,
-			Type:        FeedName,
-			CreatedDate: pkg.CreatedDate.Time,
-		})
+		pkg, err := feeds.NewPackage(pkg.CreatedDate.Time, cutoff, pkg.Title, v, FeedName)
+		if err != nil {
+			continue
+		}
+		pkgs = append(pkgs, pkg)
 	}
 	return pkgs, nil
 }

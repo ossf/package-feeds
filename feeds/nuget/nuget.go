@@ -163,21 +163,16 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 				continue // Not currently interested in package deletion events
 			}
 
-			packageCreationDetail, err := fetchPackageInfo(catalogLeafNode.URI)
+			pkgInfo, err := fetchPackageInfo(catalogLeafNode.URI)
 			if err != nil {
 				return nil, err
 			}
 
-			if packageCreationDetail.Created.Before(cutoff) {
+			pkg, err := feeds.NewPackage(pkgInfo.Created, cutoff, pkgInfo.PackageID, pkgInfo.Version, FeedName)
+			if err != nil {
 				continue
 			}
-
-			pkgs = append(pkgs, &feeds.Package{
-				Name:        packageCreationDetail.PackageID,
-				CreatedDate: packageCreationDetail.Created,
-				Version:     packageCreationDetail.Version,
-				Type:        FeedName,
-			})
+			pkgs = append(pkgs, pkg)
 		}
 	}
 
