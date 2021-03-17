@@ -1,4 +1,4 @@
-package publisher
+package gcppubsub
 
 import (
 	"context"
@@ -11,7 +11,7 @@ type PubSub struct {
 	topic *pubsub.Topic
 }
 
-func NewPubSub(ctx context.Context, url string) (*PubSub, error) {
+func New(ctx context.Context, url string) (*PubSub, error) {
 	topic, err := pubsub.OpenTopic(context.TODO(), url)
 	if err != nil {
 		return nil, err

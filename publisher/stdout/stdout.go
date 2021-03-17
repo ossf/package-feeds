@@ -1,4 +1,4 @@
-package publisher
+package stdout
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 
 type Stdout struct{}
 
-func NewStdoutPublisher() *Stdout {
+func New() *Stdout {
 	return &Stdout{}
 }
 
