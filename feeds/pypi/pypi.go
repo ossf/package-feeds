@@ -11,7 +11,6 @@ import (
 
 const (
 	FeedName = "pypi"
-	baseURL  = "https://pypi.org/rss/updates.xml"
 )
 
 type Response struct {
@@ -52,11 +51,11 @@ func (t *rfc1123Time) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
 	return nil
 }
 
-func fetchPackages() ([]*Package, error) {
+func fetchPackages(url string) ([]*Package, error) {
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
-	resp, err := client.Get(baseURL)
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -69,11 +68,19 @@ func fetchPackages() ([]*Package, error) {
 	return rssResponse.Packages, nil
 }
 
-type Feed struct{}
+type Feed struct {
+	baseURL string
+}
+
+func NewFeed() *Feed {
+	return &Feed{
+		baseURL: "https://pypi.org/rss/updates.xml",
+	}
+}
 
 func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}
-	pypiPackages, err := fetchPackages()
+	pypiPackages, err := fetchPackages(feed.baseURL)
 	if err != nil {
 		return pkgs, err
 	}

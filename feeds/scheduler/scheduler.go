@@ -20,7 +20,7 @@ type Scheduler struct {
 // New returns a new Scheduler with available feeds registered
 func New() *Scheduler {
 	registry := map[string]feeds.ScheduledFeed{
-		pypi.FeedName:     pypi.Feed{},
+		pypi.FeedName:     pypi.NewFeed(),
 		npm.FeedName:      npm.Feed{},
 		rubygems.FeedName: rubygems.Feed{},
 		crates.FeedName:   crates.Feed{},
