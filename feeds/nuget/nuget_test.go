@@ -3,16 +3,23 @@ package nuget
 import (
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/ossf/package-feeds/testutils"
 )
 
 var testEndpoint *url.URL
 
 func TestCanParseFeed(t *testing.T) {
-	srv := nugetAPIMock()
+	handlers := map[string]testutils.HttpHandlerFunc{
+		"/v3/index.json":          indexMock,
+		"/v3/catalog0/index.json": catalogMock,
+		"/v3/catalog0/page1.json": catalogPageMock,
+		"/v3/catalog0/data/somecatalog/new.expected.package.0.0.1.json": packageDetailMock,
+	}
+	srv := testutils.HttpServerMock(handlers)
 
 	testEndpoint, _ = url.Parse(srv.URL)
 	feedURL = makeTestURL("v3/index.json")
@@ -45,17 +52,6 @@ func TestCanParseFeed(t *testing.T) {
 	if result.Type != expectedType {
 		t.Fatalf("expected type %s but %s was retrieved", expectedType, result.Type)
 	}
-}
-
-func nugetAPIMock() *httptest.Server {
-	handler := http.NewServeMux()
-	handler.HandleFunc("/v3/index.json", indexMock)
-	handler.HandleFunc("/v3/catalog0/index.json", catalogMock)
-	handler.HandleFunc("/v3/catalog0/page1.json", catalogPageMock)
-	handler.HandleFunc("/v3/catalog0/data/somecatalog/new.expected.package.0.0.1.json", packageDetailMock)
-
-	srv := httptest.NewServer(handler)
-	return srv
 }
 
 func indexMock(w http.ResponseWriter, r *http.Request) {

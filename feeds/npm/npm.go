@@ -11,9 +11,15 @@ import (
 )
 
 const (
-	FeedName   = "npm"
+	FeedName = "npm"
+)
+
+var (
 	baseURL    = "https://registry.npmjs.org/-/rss"
 	versionURL = "https://registry.npmjs.org/"
+	httpClient = &http.Client{
+		Timeout: 10 * time.Second,
+	}
 )
 
 type Response struct {
@@ -55,10 +61,7 @@ func (t *rfc1123Time) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
 }
 
 func fetchPackages() ([]*Package, error) {
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-	resp, err := client.Get(baseURL)
+	resp, err := httpClient.Get(baseURL)
 	if err != nil {
 		return nil, err
 	}
@@ -73,10 +76,7 @@ func fetchPackages() ([]*Package, error) {
 
 // Gets the package version from the NPM.
 func fetchVersionInformation(packageName string) (string, error) {
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-	resp, err := client.Get(fmt.Sprintf("%s/%s", versionURL, packageName))
+	resp, err := httpClient.Get(fmt.Sprintf("%s/%s", versionURL, packageName))
 	if err != nil {
 		return "", err
 	}
