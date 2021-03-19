@@ -14,7 +14,11 @@ import (
 
 const (
 	FeedName = "goproxy"
-	baseURL  = "https://index.golang.org/index"
+)
+
+var (
+	baseURL    = "https://index.golang.org/index"
+	httpClient = &http.Client{Timeout: 10 * time.Second}
 )
 
 type PackageJSON struct {
@@ -31,11 +35,10 @@ type Package struct {
 
 func fetchPackages(since time.Time) ([]Package, error) {
 	var packages []Package
-	client := &http.Client{Timeout: 10 * time.Second}
 	params := url.Values{}
 	params.Add("since", since.Format(time.RFC3339))
 	requestURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
-	resp, err := client.Get(requestURL)
+	resp, err := httpClient.Get(requestURL)
 	if err != nil {
 		return nil, err
 	}

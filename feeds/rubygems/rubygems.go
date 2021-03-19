@@ -11,7 +11,13 @@ import (
 
 const (
 	FeedName = "rubygems"
-	baseURL  = "https://rubygems.org/api/v1/activity"
+)
+
+var (
+	baseURL    = "https://rubygems.org/api/v1/activity"
+	httpClient = &http.Client{
+		Timeout: 10 * time.Second,
+	}
 )
 
 type Package struct {
@@ -21,10 +27,7 @@ type Package struct {
 }
 
 func fetchPackages(url string) ([]*Package, error) {
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-	resp, err := client.Get(url)
+	resp, err := httpClient.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +37,8 @@ func fetchPackages(url string) ([]*Package, error) {
 	return response, err
 }
 
-type Feed struct{}
+type Feed struct {
+}
 
 func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}

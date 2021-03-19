@@ -2,13 +2,19 @@ package packagist
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/ossf/package-feeds/testutils"
 )
 
 func TestFetch(t *testing.T) {
-	srv := serverMock()
+	handlers := map[string]testutils.HttpHandlerFunc{
+		"/p2/":                   versionMock,
+		"/metadata/changes.json": changesMock,
+	}
+	srv := testutils.HttpServerMock(handlers)
+
 	defer srv.Close()
 	updateHost = srv.URL
 	versionHost = srv.URL
@@ -31,14 +37,6 @@ func TestFetch(t *testing.T) {
 	}
 }
 
-func serverMock() *httptest.Server {
-	handler := http.NewServeMux()
-	handler.HandleFunc("/p2/", versionMock)
-	handler.HandleFunc("/metadata/changes.json", changesMock)
-	srv := httptest.NewServer(handler)
-
-	return srv
-}
 func changesMock(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("since") == "" {
 		w.WriteHeader(http.StatusBadRequest)

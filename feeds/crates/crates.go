@@ -10,7 +10,13 @@ import (
 
 const (
 	FeedName = "crates"
-	url      = "https://crates.io/api/v1/summary"
+)
+
+var (
+	baseURL    = "https://crates.io/api/v1/summary"
+	httpClient = &http.Client{
+		Timeout: 10 * time.Second,
+	}
 )
 
 type crates struct {
@@ -29,10 +35,7 @@ type Package struct {
 
 // Gets crates.io packages
 func fetchPackages() ([]*Package, error) {
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-	resp, err := client.Get(url)
+	resp, err := httpClient.Get(baseURL)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +50,8 @@ func fetchPackages() ([]*Package, error) {
 	return v.JustUpdated, nil
 }
 
-type Feed struct{}
+type Feed struct {
+}
 
 func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}
