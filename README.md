@@ -21,6 +21,32 @@ infrastructure to study behavior of open source packages and to look for malicio
 We also hope that the components can be used independently, to provide package feeds or runtime
 behavior data for anyone interested.
 
+# Configuration
+
+A YAML configuration file can be provided with the following format:
+
+```
+enabled_feeds:
+- pypi
+- npm
+- goproxy
+- rubygems
+- crates
+
+publisher:
+  type: 'gcp_pubsub'
+  config:
+    url: "gcppubsub://foobar.com"
+
+http_port: 8080
+```
+
+To specify this configuration file, define its path in your environment under the `PACKAGE_FEEDS_CONFIG_PATH` variable.
+
+## Legacy Configuration
+
+Legacy configuration methods are still supported. By default, without a configuration file all feeds will be enabled. The environment variable `OSSMALWARE_TOPIC_URL` can be used to select the GCP pubsub publisher and `PORT` will configure the port for the HTTP server.
+
 # Contributing
 
 If you want to get involved or have ideas you'd like to chat about, we discuss this project in the [OSSF Securing Critical Projects Working Group](https://github.com/ossf/wg-securing-critical-projects) meetings.
