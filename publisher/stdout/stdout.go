@@ -5,6 +5,10 @@ import (
 	"fmt"
 )
 
+const (
+	PublisherType = "stdout"
+)
+
 type Stdout struct{}
 
 func New() *Stdout {
@@ -12,7 +16,7 @@ func New() *Stdout {
 }
 
 func (pub *Stdout) Name() string {
-	return "stdout"
+	return PublisherType
 }
 
 func (pub *Stdout) Send(ctx context.Context, body []byte) error {

@@ -7,8 +7,16 @@ import (
 	_ "gocloud.dev/pubsub/gcppubsub"
 )
 
+const (
+	PublisherType = "gcp_pubsub"
+)
+
 type PubSub struct {
 	topic *pubsub.Topic
+}
+
+type PubSubConfig struct {
+	URL string `mapstructure:"url"`
 }
 
 func New(ctx context.Context, url string) (*PubSub, error) {
@@ -22,8 +30,12 @@ func New(ctx context.Context, url string) (*PubSub, error) {
 	return pub, nil
 }
 
+func FromConfig(ctx context.Context, config PubSubConfig) (*PubSub, error) {
+	return New(ctx, config.URL)
+}
+
 func (pub *PubSub) Name() string {
-	return "gcp-pubsub"
+	return PublisherType
 }
 
 func (pub *PubSub) Send(ctx context.Context, body []byte) error {

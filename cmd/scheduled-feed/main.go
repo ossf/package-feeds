@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"strings"
 
+	"github.com/ossf/package-feeds/config"
 	"github.com/ossf/package-feeds/feeds/scheduler"
 	"github.com/ossf/package-feeds/publisher"
-	"github.com/ossf/package-feeds/publisher/gcppubsub"
-	"github.com/ossf/package-feeds/publisher/stdout"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -60,30 +60,39 @@ func (handler *FeedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	pubURL := os.Getenv("OSSMALWARE_TOPIC_URL")
-	var pub publisher.Publisher
+	configPath, useConfig := os.LookupEnv("PACKAGE_FEEDS_CONFIG_PATH")
 	var err error
-	if pubURL == "" {
-		pub = stdout.New()
+
+	var appConfig *config.ScheduledFeedConfig
+	if useConfig {
+		appConfig, err = config.FromFile(configPath)
 	} else {
-		pub, err = gcppubsub.New(context.TODO(), pubURL)
-		if err != nil {
-			log.Fatalf("error creating gcp pubsub topic with url %q: %v", pubURL, err)
-		}
+		appConfig = config.Default()
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pub, err := appConfig.PubConfig.ToPublisher(context.TODO())
+	if err != nil {
+		log.Fatal(fmt.Errorf("failed to initialize publisher from config: %w", err))
 	}
 	log.Infof("using %q publisher", pub.Name())
-	sched := scheduler.New()
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+
+	feeds, err := appConfig.GetScheduledFeeds()
+	log.Infof("watching feeds: %v", strings.Join(appConfig.EnabledFeeds, ", "))
+	if err != nil {
+		log.Fatal(err)
 	}
-	log.Printf("listening on port %s", port)
+	sched := scheduler.New(feeds)
+
+	log.Printf("listening on port %v", appConfig.HttpPort)
 	handler := &FeedHandler{
 		scheduler: sched,
 		pub:       pub,
 	}
 	http.Handle("/", handler)
-	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), nil); err != nil {
+	if err := http.ListenAndServe(fmt.Sprintf(":%v", appConfig.HttpPort), nil); err != nil {
 		log.Fatal(err)
 	}
 }

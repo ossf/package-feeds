@@ -1,16 +1,9 @@
 package scheduler
 
 import (
+	"github.com/ossf/package-feeds/feeds"
 	"time"
 
-	"github.com/ossf/package-feeds/feeds"
-	"github.com/ossf/package-feeds/feeds/crates"
-	"github.com/ossf/package-feeds/feeds/goproxy"
-	"github.com/ossf/package-feeds/feeds/npm"
-	"github.com/ossf/package-feeds/feeds/nuget"
-	"github.com/ossf/package-feeds/feeds/packagist"
-	"github.com/ossf/package-feeds/feeds/pypi"
-	"github.com/ossf/package-feeds/feeds/rubygems"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -19,21 +12,11 @@ type Scheduler struct {
 	registry map[string]feeds.ScheduledFeed
 }
 
-// New returns a new Scheduler with available feeds registered
-func New() *Scheduler {
-	registry := map[string]feeds.ScheduledFeed{
-		crates.FeedName:    crates.Feed{},
-		goproxy.FeedName:   goproxy.Feed{},
-		npm.FeedName:       npm.Feed{},
-		packagist.FeedName: packagist.Feed{},
-		pypi.FeedName:      pypi.Feed{},
-		rubygems.FeedName:  rubygems.Feed{},
-		nuget.FeedName:     nuget.Feed{},
+// New returns a new Scheduler with configured feeds registered
+func New(feeds map[string]feeds.ScheduledFeed) *Scheduler {
+	return &Scheduler{
+		registry: feeds,
 	}
-	s := &Scheduler{
-		registry: registry,
-	}
-	return s
 }
 
 type pollResult struct {
