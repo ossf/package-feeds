@@ -7,6 +7,7 @@ import (
 	"github.com/ossf/package-feeds/feeds/crates"
 	"github.com/ossf/package-feeds/feeds/goproxy"
 	"github.com/ossf/package-feeds/feeds/npm"
+	"github.com/ossf/package-feeds/feeds/nuget"
 	"github.com/ossf/package-feeds/feeds/packagist"
 	"github.com/ossf/package-feeds/feeds/pypi"
 	"github.com/ossf/package-feeds/feeds/rubygems"
@@ -22,11 +23,12 @@ type Scheduler struct {
 func New() *Scheduler {
 	registry := map[string]feeds.ScheduledFeed{
 		crates.FeedName:    crates.Feed{},
-		goproxy.FeedName:  goproxy.Feed{},
+		goproxy.FeedName:   goproxy.Feed{},
 		npm.FeedName:       npm.Feed{},
 		packagist.FeedName: packagist.Feed{},
 		pypi.FeedName:      pypi.Feed{},
 		rubygems.FeedName:  rubygems.Feed{},
+		nuget.FeedName:     nuget.Feed{},
 	}
 	s := &Scheduler{
 		registry: registry,
