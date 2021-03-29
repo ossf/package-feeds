@@ -1,11 +1,17 @@
 # Package Feeds
 
-This repo contains a few subprojects to aid in the analysis of open source packages, in particular to look for malicious software.
+The binary produced by [cmd/scheduled-feed/main.go](cmd/scheduled-feed/main.go) can be used to monitor various
+package repositories for changes and publish data to external services for further processing.
+
+Additionally, the repo contains a few subprojects to aid in the analysis of these open source packages, in particular to look for malicious software.
 
 These are:
 
 [Feeds](./feeds/) to watch package registries (PyPI, NPM, etc.) for changes to packages
 and to make that data available via a single standard interface.
+
+[Publisher](./publisher/) provides the functionality to push package details from feeds towards
+external services such as GCP Pub/Sub.
 
 This repo used to contain several other projects, which have since been split out into
 [github.com/ossf/package-analysis](https://github.com/ossf/package-analysis).
