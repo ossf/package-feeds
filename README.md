@@ -11,7 +11,8 @@ These are:
 and to make that data available via a single standard interface.
 
 [Publisher](./publisher/) provides the functionality to push package details from feeds towards
-external services such as GCP Pub/Sub.
+external services such as GCP Pub/Sub. Package details are formatted inline with a versioned
+[json-schema](./package.schema.json).
 
 This repo used to contain several other projects, which have since been split out into
 [github.com/ossf/package-analysis](https://github.com/ossf/package-analysis).
