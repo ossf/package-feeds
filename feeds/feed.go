@@ -7,15 +7,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const schemaVer = "1.0"
+
 type ScheduledFeed interface {
 	Latest(cutoff time.Time) ([]*Package, error)
 }
 
+// Marshalled json output validated against package.schema.json
 type Package struct {
 	Name        string    `json:"name"`
 	Version     string    `json:"version"`
 	CreatedDate time.Time `json:"created_date"`
 	Type        string    `json:"type"`
+	SchemaVer   string    `json:"schema_ver"`
 }
 
 func NewPackage(created, cutoff time.Time, name, version, feed string) (*Package, error) {
@@ -32,6 +36,7 @@ func NewPackage(created, cutoff time.Time, name, version, feed string) (*Package
 		Version:     version,
 		CreatedDate: created,
 		Type:        feed,
+		SchemaVer:   schemaVer,
 	}
 	return pkg, nil
 }
