@@ -11,34 +11,34 @@ const (
 	PublisherType = "gcp_pubsub"
 )
 
-type PubSub struct {
+type GCPPubSub struct {
 	topic *pubsub.Topic
 }
 
-type PubSubConfig struct {
+type GCPPubSubConfig struct {
 	URL string `mapstructure:"url"`
 }
 
-func New(ctx context.Context, url string) (*PubSub, error) {
+func New(ctx context.Context, url string) (*GCPPubSub, error) {
 	topic, err := pubsub.OpenTopic(context.TODO(), url)
 	if err != nil {
 		return nil, err
 	}
-	pub := &PubSub{
+	pub := &GCPPubSub{
 		topic: topic,
 	}
 	return pub, nil
 }
 
-func FromConfig(ctx context.Context, config PubSubConfig) (*PubSub, error) {
+func FromConfig(ctx context.Context, config GCPPubSubConfig) (*GCPPubSub, error) {
 	return New(ctx, config.URL)
 }
 
-func (pub *PubSub) Name() string {
+func (pub *GCPPubSub) Name() string {
 	return PublisherType
 }
 
-func (pub *PubSub) Send(ctx context.Context, body []byte) error {
+func (pub *GCPPubSub) Send(ctx context.Context, body []byte) error {
 	return pub.topic.Send(ctx, &pubsub.Message{
 		Body: body,
 	})

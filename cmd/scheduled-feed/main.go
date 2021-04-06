@@ -65,8 +65,10 @@ func main() {
 	var appConfig *config.ScheduledFeedConfig
 	if useConfig {
 		appConfig, err = config.FromFile(configPath)
+		log.Infof("Using config from file: %v", configPath)
 	} else {
 		appConfig = config.Default()
+		log.Info("No config specified, using default configuration")
 	}
 	if err != nil {
 		log.Fatal(err)

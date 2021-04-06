@@ -19,6 +19,7 @@ import (
 	"github.com/ossf/package-feeds/feeds/rubygems"
 	"github.com/ossf/package-feeds/publisher"
 	"github.com/ossf/package-feeds/publisher/gcppubsub"
+	"github.com/ossf/package-feeds/publisher/kafkapubsub"
 	"github.com/ossf/package-feeds/publisher/stdout"
 	"gopkg.in/yaml.v3"
 
@@ -111,12 +112,19 @@ func (pc PublisherConfig) ToPublisher(ctx context.Context) (publisher.Publisher,
 	var err error
 	switch pc.Type {
 	case gcppubsub.PublisherType:
-		var config gcppubsub.PubSubConfig
-		err = strictDecode(pc.Config, &config)
+		var gcpConfig gcppubsub.GCPPubSubConfig
+		err = strictDecode(pc.Config, &gcpConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode gcppubsub config: %w", err)
 		}
-		return gcppubsub.FromConfig(ctx, config)
+		return gcppubsub.FromConfig(ctx, gcpConfig)
+	case kafkapubsub.PublisherType:
+		var kafkaConfig kafkapubsub.KafkaPubSubConfig
+		err = strictDecode(pc.Config, &kafkaConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode kafkapubsub config: %w", err)
+		}
+		return kafkapubsub.FromConfig(ctx, kafkaConfig)
 	case stdout.PublisherType:
 		return stdout.New(), nil
 	default:
