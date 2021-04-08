@@ -41,9 +41,12 @@ publisher:
 http_port: 8080
 
 cutoff_delta: 5m
+
+timer: false
 ```
 
-`cutoff_delta` string formatted for [duration parser](https://golang.org/pkg/time/#ParseDuration). To specify this configuration file, define its path in your environment under the `PACKAGE_FEEDS_CONFIG_PATH` variable.
+`cutoff_delta` string formatted for [duration parser](https://golang.org/pkg/time/#ParseDuration).
+`timer` will configure interal polling of the `enabled_feeds` at the given `cutoff_delta` period. To specify this configuration file, define its path in your environment under the `PACKAGE_FEEDS_CONFIG_PATH` variable.
 
 ## Legacy Configuration
 

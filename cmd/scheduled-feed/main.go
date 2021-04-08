@@ -13,6 +13,7 @@ import (
 	"github.com/ossf/package-feeds/feeds/scheduler"
 	"github.com/ossf/package-feeds/publisher"
 
+	"github.com/robfig/cron"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -97,8 +98,27 @@ func main() {
 		pub:       pub,
 		delta:     delta,
 	}
+
+	if appConfig.Timer {
+		cronjob := cron.New()
+		crontab := fmt.Sprintf("@every %s", delta.String())
+		log.Printf("Running a timer %s", crontab)
+		cronjob.AddFunc(crontab, func() { cronrequest(appConfig.HttpPort) })
+		cronjob.Start()
+	}
+
 	http.Handle("/", handler)
 	if err := http.ListenAndServe(fmt.Sprintf(":%v", appConfig.HttpPort), nil); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func cronrequest(port int) {
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	_, err := client.Get(fmt.Sprintf("http://localhost:%v", port))
+	if err != nil {
+		log.Printf("http request failed: %v", err)
 	}
 }
