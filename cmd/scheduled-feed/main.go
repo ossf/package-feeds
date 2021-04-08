@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/ossf/package-feeds/config"
 	"github.com/ossf/package-feeds/feeds/scheduler"
@@ -80,7 +80,11 @@ func main() {
 	log.Infof("using %q publisher", pub.Name())
 
 	feeds, err := appConfig.GetScheduledFeeds()
-	log.Infof("watching feeds: %v", strings.Join(appConfig.EnabledFeeds, ", "))
+	feedNames := []string{}
+	for k, _ := range feeds {
+		feedNames = append(feedNames, k)
+	}
+	log.Infof("watching feeds: %v", strings.Join(feedNames, ", "))
 	if err != nil {
 		log.Fatal(err)
 	}

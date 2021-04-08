@@ -16,6 +16,7 @@ import (
 	"github.com/ossf/package-feeds/feeds/nuget"
 	"github.com/ossf/package-feeds/feeds/packagist"
 	"github.com/ossf/package-feeds/feeds/pypi"
+	"github.com/ossf/package-feeds/feeds/pypi_critical"
 	"github.com/ossf/package-feeds/feeds/rubygems"
 	"github.com/ossf/package-feeds/publisher"
 	"github.com/ossf/package-feeds/publisher/gcppubsub"
@@ -53,7 +54,7 @@ func (config *ScheduledFeedConfig) applyEnvVars() {
 	// Support legacy env var definition for gcp pub sub.
 	pubURL := os.Getenv("OSSMALWARE_TOPIC_URL")
 	if pubURL != "" {
-		config.PubConfig = PublisherConfig{
+		config.PubConfig = TypeConfigPair{
 			Type: gcppubsub.PublisherType,
 			Config: map[string]interface{}{
 				"url": pubURL,
@@ -77,7 +78,22 @@ func AddTo(ls *[]int, value int) {
 func (sConfig *ScheduledFeedConfig) GetScheduledFeeds() (map[string]feeds.ScheduledFeed, error) {
 	var err error
 	scheduledFeeds := map[string]feeds.ScheduledFeed{}
+
+	// Parse feeds with custom configurations
+	for _, entry := range sConfig.Feeds {
+		feed, err := entry.ToFeed()
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse feeds entries: %w", err)
+		}
+		scheduledFeeds[entry.Type] = feed
+		fmt.Printf("%#v", feed)
+	}
+
 	for _, entry := range sConfig.EnabledFeeds {
+		// If these are already added by sConfig.Feeds, we can skip them
+		if _, ok := scheduledFeeds[entry]; ok {
+			continue
+		}
 		switch entry {
 		case crates.FeedName:
 			scheduledFeeds[entry] = crates.Feed{}
@@ -97,17 +113,18 @@ func (sConfig *ScheduledFeedConfig) GetScheduledFeeds() (map[string]feeds.Schedu
 			err = fmt.Errorf("unknown feed type %v", entry)
 		}
 	}
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse enabled_feeds entries: %w", err)
 	}
+
 	return scheduledFeeds, nil
 }
 
-// Produces a Publisher object from the provided PublisherConfig
-// The PublisherConfig.Type value is evaluated and the appropriate Publisher is
-// constructed from the Config field.
-func (pc PublisherConfig) ToPublisher(ctx context.Context) (publisher.Publisher, error) {
+// Produces a Publisher object from the provided TypeConfigPair
+// The TypeConfigPair.Type value is evaluated and the appropriate Publisher is
+// constructed from the Config field. If the type is not a recognised Publisher type,
+// an error is returned.
+func (pc TypeConfigPair) ToPublisher(ctx context.Context) (publisher.Publisher, error) {
 	var err error
 	switch pc.Type {
 	case gcppubsub.PublisherType:
@@ -120,9 +137,37 @@ func (pc PublisherConfig) ToPublisher(ctx context.Context) (publisher.Publisher,
 	case stdout.PublisherType:
 		return stdout.New(), nil
 	default:
-		err = fmt.Errorf("unknown publisher type %v", pc.Type)
+		return nil, err
 	}
-	return nil, err
+}
+
+// Produces a Feed object from the provided TypeConfigPair
+// The TypeConfigPair.Type value is evaluated and the appropriate Feed is
+// constructed from the Config field. If the type is not a recognised Feed type,
+// an error is returned.
+func (fc TypeConfigPair) ToFeed() (feeds.ScheduledFeed, error) {
+	var err error
+	feedMap := map[string]feeds.ScheduledFeed{
+		crates.FeedName:        (*crates.Feed)(nil),
+		goproxy.FeedName:       (*goproxy.Feed)(nil),
+		npm.FeedName:           (*npm.Feed)(nil),
+		nuget.FeedName:         (*nuget.Feed)(nil),
+		pypi.FeedName:          (*pypi.Feed)(nil),
+		pypi_critical.FeedName: (*pypi_critical.Feed)(nil),
+		packagist.FeedName:     (*packagist.Feed)(nil),
+		rubygems.FeedName:      (*rubygems.Feed)(nil),
+	}
+
+	feed, ok := feedMap[fc.Type]
+	if !ok {
+		return nil, fmt.Errorf("invalid type provided for feed configuration: %v", fc.Type)
+	}
+	err = strictDecode(fc.Config, &feed)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode %v feed config: %w", fc.Type, err)
+	}
+
+	return feed, nil
 }
 
 // Decode an input using mapstruct decoder with strictness enabled, errors will be returned in
@@ -149,7 +194,7 @@ func Default() *ScheduledFeedConfig {
 			pypi.FeedName,
 			rubygems.FeedName,
 		},
-		PubConfig: PublisherConfig{
+		PubConfig: TypeConfigPair{
 			Type: stdout.PublisherType,
 		},
 		HttpPort: 8080,

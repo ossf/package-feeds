@@ -7,6 +7,8 @@ import (
 	"github.com/ossf/package-feeds/config"
 	"github.com/ossf/package-feeds/feeds/scheduler"
 	"github.com/ossf/package-feeds/publisher/stdout"
+
+	"github.com/ossf/package-feeds/feeds/pypi_critical"
 )
 
 const (
@@ -79,10 +81,10 @@ func TestLoadFeedConfigUnknownFeedType(t *testing.T) {
 	}
 }
 
-func TestPubConfigToPublisherStdout(t *testing.T) {
+func TestTypeConfigPairToPublisherStdout(t *testing.T) {
 	t.Parallel()
 
-	c := config.PublisherConfig{
+	c := config.TypeConfigPair{
 		Type: stdout.PublisherType,
 	}
 	pub, err := c.ToPublisher(context.TODO())
@@ -92,6 +94,42 @@ func TestPubConfigToPublisherStdout(t *testing.T) {
 	if pub.Name() != stdout.PublisherType {
 		t.Errorf("stdout sub config produced a publisher with an unexpected name: '%v' != '%v'",
 			pub.Name(), stdout.PublisherType)
+	}
+}
+
+func TestTypeConfigPairToFeed(t *testing.T) {
+	t.Parallel()
+
+	packages := []string{
+		"foo",
+		"bar",
+		"baz",
+	}
+
+	c := config.TypeConfigPair{
+		Type: pypi_critical.FeedName,
+		Config: map[string]interface{}{
+			"packages": packages,
+		},
+	}
+	feed, err := c.ToFeed()
+	if err != nil {
+		t.Fatalf("failed to create pypi critical feed from configuration: %v", err)
+	}
+
+	pypiFeed, ok := feed.(*pypi_critical.Feed)
+	if !ok {
+		t.Fatal("failed to cast feed as pypi critical feed")
+	}
+
+	if len(pypiFeed.PackageList) != len(packages) {
+		t.Errorf("pypi critical package list does not match config provided package list")
+	} else {
+		for i := 0; i < len(packages); i++ {
+			if pypiFeed.PackageList[i] != packages[i] {
+				t.Errorf("pypi critical package '%v' does not match configured package '%v'", pypiFeed.PackageList[i], packages[i])
+			}
+		}
 	}
 }
 
