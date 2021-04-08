@@ -131,6 +131,16 @@ func fetchPackageInfo(url string) (*nugetPackageDetails, error) {
 
 type Feed struct{}
 
+func New(feedOptions feeds.FeedOptions) (*Feed, error) {
+	if feedOptions.Packages != nil {
+		return nil, feeds.UnsupportedOptionError{
+			Feed:   FeedName,
+			Option: "packages",
+		}
+	}
+	return &Feed{}, nil
+}
+
 // Latest will parse all creation events for packages in the nuget.org catalog feed
 // for packages that have been published since the cutoff
 // https://docs.microsoft.com/en-us/nuget/api/catalog-resource

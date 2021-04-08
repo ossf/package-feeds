@@ -30,6 +30,16 @@ type actions struct {
 
 type Feed struct{}
 
+func New(feedOptions feeds.FeedOptions) (*Feed, error) {
+	if feedOptions.Packages != nil {
+		return nil, feeds.UnsupportedOptionError{
+			Feed:   FeedName,
+			Option: "packages",
+		}
+	}
+	return &Feed{}, nil
+}
+
 func fetchPackages(since time.Time) ([]actions, error) {
 	client := &http.Client{
 		Timeout: 10 * time.Second,

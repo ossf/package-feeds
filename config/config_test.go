@@ -6,16 +6,18 @@ import (
 
 	"github.com/ossf/package-feeds/config"
 	"github.com/ossf/package-feeds/events"
+	"github.com/ossf/package-feeds/feeds"
+	"github.com/ossf/package-feeds/feeds/pypi"
 	"github.com/ossf/package-feeds/feeds/scheduler"
 	"github.com/ossf/package-feeds/publisher/stdout"
 )
 
 const (
 	TestConfigStr = `
-enabled_feeds:
-- rubygems
-- goproxy
-- npm
+feeds:
+- type: rubygems
+- type: goproxy
+- type: npm
 
 publisher:
   type: "gcp"
@@ -27,8 +29,8 @@ poll_rate: 5m
 timer: true
 `
 	TestConfigStrUnknownFeedType = `
-enabled_feeds:
-- foo
+feeds:
+- type: foo
 `
 	TestConfigStrUnknownField = `
 foo:
@@ -52,11 +54,11 @@ func TestDefault(t *testing.T) {
 	t.Parallel()
 
 	c := config.Default()
-	feeds, err := c.GetScheduledFeeds()
+	scheduledFeeds, err := c.GetScheduledFeeds()
 	if err != nil {
 		t.Fatalf("failed to initialize feeds: %v", err)
 	}
-	_ = scheduler.New(feeds)
+	_ = scheduler.New(scheduledFeeds)
 }
 
 func TestGetScheduledFeeds(t *testing.T) {
@@ -66,16 +68,16 @@ func TestGetScheduledFeeds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(c.EnabledFeeds) != 3 {
-		t.Fatalf("EnabledFeeds is expected to be 3 but was `%v`", len(c.EnabledFeeds))
+	if len(c.Feeds) != 3 {
+		t.Fatalf("Feeds is expected to be 3 but was `%v`", len(c.Feeds))
 	}
-	feeds, err := c.GetScheduledFeeds()
+	scheduledFeeds, err := c.GetScheduledFeeds()
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, val := range c.EnabledFeeds {
-		if _, ok := feeds[val]; !ok {
-			t.Errorf("expected `%v` feed was not found in scheduled feeds after GetScheduledFeeds()", val)
+	for _, feed := range c.Feeds {
+		if _, ok := scheduledFeeds[feed.Type]; !ok {
+			t.Errorf("expected `%v` feed was not found in scheduled feeds after GetScheduledFeeds()", feed.Type)
 		}
 	}
 }
@@ -93,7 +95,7 @@ func TestLoadFeedConfigUnknownFeedType(t *testing.T) {
 	}
 }
 
-func TestPubConfigToPublisherStdout(t *testing.T) {
+func TestPublisherConfigToPublisherStdout(t *testing.T) {
 	t.Parallel()
 
 	c := config.PublisherConfig{
@@ -106,6 +108,46 @@ func TestPubConfigToPublisherStdout(t *testing.T) {
 	if pub.Name() != stdout.PublisherType {
 		t.Errorf("stdout sub config produced a publisher with an unexpected name: '%v' != '%v'",
 			pub.Name(), stdout.PublisherType)
+	}
+}
+
+func TestPublisherConfigToFeed(t *testing.T) {
+	t.Parallel()
+
+	packages := []string{
+		"foo",
+		"bar",
+		"baz",
+	}
+
+	c := config.FeedConfig{
+		Type: pypi.FeedName,
+		Options: feeds.FeedOptions{
+			Packages: &packages,
+		},
+	}
+	feed, err := c.ToFeed(events.NewNullHandler())
+	if err != nil {
+		t.Fatalf("failed to create pypi feed from configuration: %v", err)
+	}
+
+	pypiFeed, ok := feed.(*pypi.Feed)
+	if !ok {
+		t.Fatal("failed to cast feed as pypi feed")
+	}
+
+	feedPackages := pypiFeed.GetPackageList()
+	if feedPackages == nil {
+		t.Fatalf("failed to initialize pypi feed package list to poll")
+	}
+	if feedPackages != nil && len(*feedPackages) != len(packages) {
+		t.Errorf("pypi package list does not match config provided package list")
+	} else {
+		for i := 0; i < len(packages); i++ {
+			if (*feedPackages)[i] != packages[i] {
+				t.Errorf("pypi package '%v' does not match configured package '%v'", (*feedPackages)[i], packages[i])
+			}
+		}
 	}
 }
 

@@ -1,13 +1,26 @@
 package feeds
 
 import (
+	"fmt"
 	"time"
 )
 
 const schemaVer = "1.0"
 
+type UnsupportedOptionError struct {
+	Option string
+	Feed   string
+}
+
 type ScheduledFeed interface {
 	Latest(cutoff time.Time) ([]*Package, error)
+}
+
+// General configuration options for feeds.
+type FeedOptions struct {
+	// A collection of package names to poll instead of standard firehose behaviour.
+	// Not supported by all feeds.
+	Packages *[]string `yaml:"packages"`
 }
 
 // Marshalled json output validated against package.schema.json.
@@ -37,4 +50,8 @@ func ApplyCutoff(pkgs []*Package, cutoff time.Time) []*Package {
 		}
 	}
 	return filteredPackages
+}
+
+func (err UnsupportedOptionError) Error() string {
+	return fmt.Sprintf("unsupported option `%v` supplied to %v feed", err.Option, err.Feed)
 }

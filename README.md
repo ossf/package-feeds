@@ -27,12 +27,12 @@ behavior data for anyone interested.
 A YAML configuration file can be provided with the following format:
 
 ```
-enabled_feeds:
-- pypi
-- npm
-- goproxy
-- rubygems
-- crates
+feeds:
+- type: pypi
+- type: npm
+- type: goproxy
+- type: rubygems
+- type: crates
 
 publisher:
   type: 'gcp_pubsub'
@@ -47,7 +47,21 @@ timer: false
 ```
 
 `poll_rate` string formatted for [duration parser](https://golang.org/pkg/time/#ParseDuration).This is used as an initial value to generate a cutoff point for feed events relative to the given time at execution, with subsequent events using the previous time at execution as the cutoff point.
-`timer` will configure interal polling of the `enabled_feeds` at the given `poll_rate` period. To specify this configuration file, define its path in your environment under the `PACKAGE_FEEDS_CONFIG_PATH` variable.
+`timer` will configure interal polling of the `feeds` at the given `poll_rate` period. To specify this configuration file, define its path in your environment under the `PACKAGE_FEEDS_CONFIG_PATH` variable.
+
+## FeedOptions
+
+Feeds can be configured with additional options, not all feeds will support these features. See the appropriate feed `README.md` for supported options.
+Below is an example of such options with pypi being configured to poll a specific set of packages
+
+```
+feeds:
+- type: pypi
+  options:
+    packages:
+    - fooPackage
+    - barPackage
+```
 
 ## Legacy Configuration
 
