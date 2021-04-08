@@ -23,6 +23,7 @@ publisher:
 
 http_port: 8080
 cutoff_delta: 5m
+timer: true
 `
 	TestConfigStrUnknownFeedType = `
 enabled_feeds:

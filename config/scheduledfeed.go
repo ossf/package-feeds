@@ -162,6 +162,7 @@ func Default() *ScheduledFeedConfig {
 		},
 		HttpPort:    8080,
 		CutoffDelta: "5m",
+		Timer:       false,
 	}
 	config.applyEnvVars()
 	return config
