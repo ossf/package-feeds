@@ -113,7 +113,11 @@ func main() {
 	log.Infof("using %q publisher", pub.Name())
 
 	scheduledFeeds, err := appConfig.GetScheduledFeeds()
-	log.Infof("watching feeds: %v", strings.Join(appConfig.EnabledFeeds, ", "))
+	feedNames := []string{}
+	for k := range scheduledFeeds {
+		feedNames = append(feedNames, k)
+	}
+	log.Infof("watching feeds: %v", strings.Join(feedNames, ", "))
 	if err != nil {
 		log.Fatal(err)
 	}

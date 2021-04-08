@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ossf/package-feeds/events"
+	"github.com/ossf/package-feeds/feeds"
 	"github.com/ossf/package-feeds/testutils"
 )
 
@@ -18,7 +19,10 @@ func TestCratesLatest(t *testing.T) {
 	srv := testutils.HTTPServerMock(handlers)
 
 	baseURL = srv.URL + "/api/v1/summary"
-	feed := New(events.NewNullHandler())
+	feed, err := New(feeds.FeedOptions{}, events.NewNullHandler())
+	if err != nil {
+		t.Fatalf("failed to create crates feed: %v", err)
+	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 	pkgs, err := feed.Latest(cutoff)

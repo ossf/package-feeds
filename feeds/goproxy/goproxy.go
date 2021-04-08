@@ -70,6 +70,16 @@ func fetchPackages(since time.Time) ([]Package, error) {
 
 type Feed struct{}
 
+func New(feedOptions feeds.FeedOptions) (*Feed, error) {
+	if feedOptions.Packages != nil {
+		return nil, feeds.UnsupportedOptionError{
+			Feed:   FeedName,
+			Option: "packages",
+		}
+	}
+	return &Feed{}, nil
+}
+
 func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}
 	packages, err := fetchPackages(cutoff)

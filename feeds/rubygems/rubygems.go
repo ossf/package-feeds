@@ -42,10 +42,16 @@ type Feed struct {
 	lossyFeedAlerter *feeds.LossyFeedAlerter
 }
 
-func New(eventHandler *events.Handler) *Feed {
+func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, error) {
+	if feedOptions.Packages != nil {
+		return nil, feeds.UnsupportedOptionError{
+			Feed:   FeedName,
+			Option: "packages",
+		}
+	}
 	return &Feed{
 		lossyFeedAlerter: feeds.NewLossyFeedAlerter(eventHandler),
-	}
+	}, nil
 }
 
 func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {

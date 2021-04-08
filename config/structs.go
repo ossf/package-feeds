@@ -1,19 +1,22 @@
 package config
 
-import "github.com/ossf/package-feeds/events"
+import (
+	"github.com/ossf/package-feeds/events"
+	"github.com/ossf/package-feeds/feeds"
+)
 
 type ScheduledFeedConfig struct {
-	// Configures the publisher for pushing packages after polling
+	// Configures the publisher for pushing packages after polling.
 	PubConfig PublisherConfig `yaml:"publisher"`
 
-	// Configures the feeds to be used for polling from package repositories
-	EnabledFeeds []string `yaml:"enabled_feeds"`
+	// Configures the feeds to be used for polling from package repositories.
+	Feeds []FeedConfig `yaml:"feeds"`
 
 	HTTPPort int    `yaml:"http_port,omitempty"`
 	PollRate string `yaml:"poll_rate"`
 	Timer    bool   `yaml:"timer"`
 
-	// Configures the EventHandler instance to be used throughout the package-feeds application
+	// Configures the EventHandler instance to be used throughout the package-feeds application.
 	EventsConfig *EventsConfig `yaml:"events"`
 
 	eventHandler *events.Handler
@@ -22,6 +25,11 @@ type ScheduledFeedConfig struct {
 type PublisherConfig struct {
 	Type   string      `mapstructure:"type"`
 	Config interface{} `mapstructure:"config"`
+}
+
+type FeedConfig struct {
+	Type    string            `mapstructure:"type"`
+	Options feeds.FeedOptions `mapstructure:"options"`
 }
 
 type EventsConfig struct {

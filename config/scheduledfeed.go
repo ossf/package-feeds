@@ -59,11 +59,11 @@ func NewConfigFromBytes(yamlBytes []byte) (*ScheduledFeedConfig, error) {
 }
 
 // Applies environment variables to the configuration.
-func (config *ScheduledFeedConfig) applyEnvVars() {
+func (sc *ScheduledFeedConfig) applyEnvVars() {
 	// Support legacy env var definition for gcp pub sub.
 	pubURL := os.Getenv("OSSMALWARE_TOPIC_URL")
 	if pubURL != "" {
-		config.PubConfig = PublisherConfig{
+		sc.PubConfig = PublisherConfig{
 			Type: gcppubsub.PublisherType,
 			Config: map[string]interface{}{
 				"url": pubURL,
@@ -75,7 +75,7 @@ func (config *ScheduledFeedConfig) applyEnvVars() {
 	port, err := strconv.Atoi(portStr)
 
 	if portProvided && err == nil {
-		config.HTTPPort = port
+		sc.HTTPPort = port
 	}
 }
 
@@ -83,53 +83,37 @@ func AddTo(ls *[]int, value int) {
 	*ls = append(*ls, value)
 }
 
-// Constructs a map of ScheduledFeeds to enable based on the EnabledFeeds provided
-// from configuration, indexed by the feed type.
-func (config *ScheduledFeedConfig) GetScheduledFeeds() (map[string]feeds.ScheduledFeed, error) {
-	var err error
+// Constructs a map of ScheduledFeeds to enable based on the Feeds
+// provided from configuration, indexed by the feed type.
+func (sc *ScheduledFeedConfig) GetScheduledFeeds() (map[string]feeds.ScheduledFeed, error) {
 	scheduledFeeds := map[string]feeds.ScheduledFeed{}
-	eventHandler, err := config.GetEventHandler()
+	eventHandler, err := sc.GetEventHandler()
 	if err != nil {
 		return nil, err
 	}
-	for _, entry := range config.EnabledFeeds {
-		switch entry {
-		case crates.FeedName:
-			scheduledFeeds[entry] = crates.New(eventHandler)
-		case goproxy.FeedName:
-			scheduledFeeds[entry] = goproxy.Feed{}
-		case npm.FeedName:
-			scheduledFeeds[entry] = npm.New(eventHandler)
-		case nuget.FeedName:
-			scheduledFeeds[entry] = nuget.Feed{}
-		case pypi.FeedName:
-			scheduledFeeds[entry] = pypi.New(eventHandler)
-		case packagist.FeedName:
-			scheduledFeeds[entry] = packagist.Feed{}
-		case rubygems.FeedName:
-			scheduledFeeds[entry] = rubygems.New(eventHandler)
-		default:
-			err = fmt.Errorf("%w : %v", errUnknownFeed, entry)
+
+	for _, entry := range sc.Feeds {
+		feed, err := entry.ToFeed(eventHandler)
+		if err != nil {
+			return nil, err
 		}
+		scheduledFeeds[entry.Type] = feed
 	}
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse enabled_feeds entries: %w", err)
-	}
 	return scheduledFeeds, nil
 }
 
-func (config *ScheduledFeedConfig) GetEventHandler() (*events.Handler, error) {
+func (sc *ScheduledFeedConfig) GetEventHandler() (*events.Handler, error) {
 	var err error
-	if config.EventsConfig == nil {
-		config.eventHandler = events.NewNullHandler()
-	} else if config.eventHandler == nil {
-		config.eventHandler, err = config.EventsConfig.ToEventHandler()
+	if sc.EventsConfig == nil {
+		sc.eventHandler = events.NewNullHandler()
+	} else if sc.eventHandler == nil {
+		sc.eventHandler, err = sc.EventsConfig.ToEventHandler()
 		if err != nil {
 			return nil, err
 		}
 	}
-	return config.eventHandler, nil
+	return sc.eventHandler, nil
 }
 
 func (ec *EventsConfig) ToEventHandler() (*events.Handler, error) {
@@ -145,7 +129,8 @@ func (ec *EventsConfig) ToEventHandler() (*events.Handler, error) {
 
 // Produces a Publisher object from the provided PublisherConfig
 // The PublisherConfig.Type value is evaluated and the appropriate Publisher is
-// constructed from the Config field.
+// constructed from the Config field. If the type is not a recognised Publisher type,
+// an error is returned.
 func (pc PublisherConfig) ToPublisher(ctx context.Context) (publisher.Publisher, error) {
 	var err error
 	switch pc.Type {
@@ -166,9 +151,31 @@ func (pc PublisherConfig) ToPublisher(ctx context.Context) (publisher.Publisher,
 	case stdout.PublisherType:
 		return stdout.New(), nil
 	default:
-		err = fmt.Errorf("%w : %v", errUnknownPub, pc.Type)
+		return nil, fmt.Errorf("%w : %v", errUnknownPub, pc.Type)
 	}
-	return nil, err
+}
+
+// Constructs the appropriate feed for the given type, providing the
+// options to the feed.
+func (fc FeedConfig) ToFeed(eventHandler *events.Handler) (feeds.ScheduledFeed, error) {
+	switch fc.Type {
+	case crates.FeedName:
+		return crates.New(fc.Options, eventHandler)
+	case goproxy.FeedName:
+		return goproxy.New(fc.Options)
+	case npm.FeedName:
+		return npm.New(fc.Options, eventHandler)
+	case nuget.FeedName:
+		return nuget.New(fc.Options)
+	case pypi.FeedName:
+		return pypi.New(fc.Options, eventHandler)
+	case packagist.FeedName:
+		return packagist.New(fc.Options)
+	case rubygems.FeedName:
+		return rubygems.New(fc.Options, eventHandler)
+	default:
+		return nil, fmt.Errorf("%w : %v", errUnknownFeed, fc.Type)
+	}
 }
 
 // Decode an input using mapstruct decoder with strictness enabled, errors will be returned in
@@ -186,14 +193,14 @@ func strictDecode(input, out interface{}) error {
 
 func Default() *ScheduledFeedConfig {
 	config := &ScheduledFeedConfig{
-		EnabledFeeds: []string{
-			crates.FeedName,
-			goproxy.FeedName,
-			npm.FeedName,
-			nuget.FeedName,
-			packagist.FeedName,
-			pypi.FeedName,
-			rubygems.FeedName,
+		Feeds: []FeedConfig{
+			{Type: crates.FeedName},
+			{Type: goproxy.FeedName},
+			{Type: npm.FeedName},
+			{Type: nuget.FeedName},
+			{Type: packagist.FeedName},
+			{Type: pypi.FeedName},
+			{Type: rubygems.FeedName},
 		},
 		PubConfig: PublisherConfig{
 			Type: stdout.PublisherType,
