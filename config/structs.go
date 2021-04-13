@@ -4,6 +4,7 @@ type ScheduledFeedConfig struct {
 	PubConfig    PublisherConfig `yaml:"publisher"`
 	EnabledFeeds []string        `yaml:"enabled_feeds"`
 	HttpPort     int             `yaml:"http_port,omitempty"`
+	CutoffDelta  string          `yaml:"cutoff_delta"`
 }
 
 type PublisherConfig struct {
