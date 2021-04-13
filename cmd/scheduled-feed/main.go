@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/ossf/package-feeds/config"
 	"github.com/ossf/package-feeds/feeds/scheduler"
@@ -16,16 +16,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const delta = 5 * time.Minute
-
 // FeedHandler is a handler that fetches new packages from various feeds
 type FeedHandler struct {
 	scheduler *scheduler.Scheduler
 	pub       publisher.Publisher
+	delta     time.Duration
 }
 
 func (handler *FeedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	cutoff := time.Now().UTC().Add(-delta)
+	cutoff := time.Now().UTC().Add(-handler.delta)
 	pkgs, errs := handler.scheduler.Poll(cutoff)
 	if len(errs) > 0 {
 		for _, err := range errs {
@@ -87,9 +86,14 @@ func main() {
 	sched := scheduler.New(feeds)
 
 	log.Printf("listening on port %v", appConfig.HttpPort)
+	delta, err := time.ParseDuration(appConfig.CutoffDelta)
+	if err != nil {
+		log.Fatal(err)
+	}
 	handler := &FeedHandler{
 		scheduler: sched,
 		pub:       pub,
+		delta:     delta,
 	}
 	http.Handle("/", handler)
 	if err := http.ListenAndServe(fmt.Sprintf(":%v", appConfig.HttpPort), nil); err != nil {

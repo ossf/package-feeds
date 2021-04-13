@@ -39,13 +39,16 @@ publisher:
     url: "gcppubsub://foobar.com"
 
 http_port: 8080
+
+cutoff_delta: 5m
 ```
 
-To specify this configuration file, define its path in your environment under the `PACKAGE_FEEDS_CONFIG_PATH` variable.
+`cutoff_delta` string formatted for [duration parser](https://golang.org/pkg/time/#ParseDuration). To specify this configuration file, define its path in your environment under the `PACKAGE_FEEDS_CONFIG_PATH` variable.
 
 ## Legacy Configuration
 
 Legacy configuration methods are still supported. By default, without a configuration file all feeds will be enabled. The environment variable `OSSMALWARE_TOPIC_URL` can be used to select the GCP pubsub publisher and `PORT` will configure the port for the HTTP server.
+The default `cutoff_delta` is 5 minutes, this is used to generate a cutoff point for feed events relative to the given time at execution.
 
 # Contributing
 

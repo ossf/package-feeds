@@ -22,6 +22,7 @@ publisher:
     endpoint: "https://foobaz.com"
 
 http_port: 8080
+cutoff_delta: 5m
 `
 	TestConfigStrUnknownFeedType = `
 enabled_feeds:
