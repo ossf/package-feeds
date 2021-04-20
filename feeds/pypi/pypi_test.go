@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ossf/package-feeds/events"
 	"github.com/ossf/package-feeds/testutils"
 )
 
@@ -17,7 +18,7 @@ func TestPypiLatest(t *testing.T) {
 	srv := testutils.HTTPServerMock(handlers)
 
 	baseURL = srv.URL + "/rss/updates.xml"
-	feed := Feed{}
+	feed := New(events.NewNullHandler())
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 	pkgs, err := feed.Latest(cutoff)
