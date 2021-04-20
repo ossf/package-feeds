@@ -11,8 +11,10 @@ import (
 	"strconv"
 
 	"github.com/mitchellh/mapstructure"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
+	"github.com/ossf/package-feeds/events"
 	"github.com/ossf/package-feeds/feeds"
 	"github.com/ossf/package-feeds/feeds/crates"
 	"github.com/ossf/package-feeds/feeds/goproxy"
@@ -28,8 +30,9 @@ import (
 )
 
 var (
-	errUnknownFeed = errors.New("unknown feed type")
-	errUnknownPub  = errors.New("unknown publisher type")
+	errUnknownFeed     = errors.New("unknown feed type")
+	errUnknownPub      = errors.New("unknown publisher type")
+	errUnknownSinkType = errors.New("unknown sink type")
 )
 
 // Loads a ScheduledFeedConfig struct from a yaml config file.
@@ -110,6 +113,30 @@ func (config *ScheduledFeedConfig) GetScheduledFeeds() (map[string]feeds.Schedul
 		return nil, fmt.Errorf("failed to parse enabled_feeds entries: %w", err)
 	}
 	return scheduledFeeds, nil
+}
+
+func (config *ScheduledFeedConfig) GetEventHandler() (*events.Handler, error) {
+	var err error
+	if config.EventsConfig == nil {
+		config.eventHandler = events.NewNullHandler()
+	} else if config.eventHandler == nil {
+		config.eventHandler, err = config.EventsConfig.ToEventHandler()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return config.eventHandler, nil
+}
+
+func (ec *EventsConfig) ToEventHandler() (*events.Handler, error) {
+	var sink events.Sink
+	switch ec.Sink {
+	case events.LoggingEventSinkType:
+		sink = events.NewLoggingEventSink(log.New())
+	default:
+		return nil, fmt.Errorf("%w : %v", errUnknownSinkType, ec.Sink)
+	}
+	return events.NewHandler(sink, ec.EventFilter), nil
 }
 
 // Produces a Publisher object from the provided PublisherConfig

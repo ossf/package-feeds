@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ossf/package-feeds/config"
+	"github.com/ossf/package-feeds/events"
 	"github.com/ossf/package-feeds/feeds/scheduler"
 	"github.com/ossf/package-feeds/publisher/stdout"
 )
@@ -33,6 +34,17 @@ enabled_feeds:
 foo:
 - bar
 - baz
+`
+	TestEventsConfig = `
+events:
+  sink: stdout
+  filter:
+    enabled_event_types:
+    - foo
+    disabled_event_types:
+    - bar
+    enabled_components:
+    - baz
 `
 )
 
@@ -103,5 +115,48 @@ func TestStrictConfigDecoding(t *testing.T) {
 	_, err := config.NewConfigFromBytes([]byte(TestConfigStrUnknownField))
 	if err == nil {
 		t.Fatal("config successfully parsed despite invalid top level configuration field")
+	}
+}
+
+func TestEventHandlerConfiguration(t *testing.T) {
+	t.Parallel()
+
+	c, err := config.NewConfigFromBytes([]byte(TestEventsConfig))
+	if err != nil {
+		t.Fatalf("failed to load config from bytes: %v", err)
+	}
+
+	handler, err := c.GetEventHandler()
+	if err != nil || handler == nil {
+		t.Fatalf("failed to initialize event handler from config")
+	}
+
+	_, ok := handler.GetSink().(*events.LoggingEventSink)
+	if !ok {
+		t.Fatalf("sink is not configured as stdout as config file expects")
+	}
+
+	filter := handler.GetFilter()
+
+	fooEvent := events.MockEvent{
+		Type:      "foo",
+		Component: "qux",
+	}
+	barEvent := events.MockEvent{
+		Type:      "bar",
+		Component: "baz",
+	}
+	bazEvent := events.MockEvent{
+		Type:      "qux",
+		Component: "baz",
+	}
+	if !filter.ShouldDispatch(fooEvent) {
+		t.Errorf("configured filter incorrectly rejects type `foo` from being dispatched")
+	}
+	if filter.ShouldDispatch(barEvent) {
+		t.Errorf("configured filter incorrectly allows type `bar` to be dispatched")
+	}
+	if !filter.ShouldDispatch(bazEvent) {
+		t.Errorf("configured filter incorrectly rejects component `baz` from being dispatched")
 	}
 }
