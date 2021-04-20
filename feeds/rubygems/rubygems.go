@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ossf/package-feeds/events"
 	"github.com/ossf/package-feeds/feeds"
 )
 
@@ -37,7 +38,15 @@ func fetchPackages(url string) ([]*Package, error) {
 	return response, err
 }
 
-type Feed struct{}
+type Feed struct {
+	lossyFeedAlerter *feeds.LossyFeedAlerter
+}
+
+func New(eventHandler *events.Handler) *Feed {
+	return &Feed{
+		lossyFeedAlerter: feeds.NewLossyFeedAlerter(eventHandler),
+	}
+}
 
 func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}
@@ -61,6 +70,8 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 		pkg := feeds.NewPackage(pkg.CreatedDate, pkg.Name, pkg.Version, FeedName)
 		pkgs = append(pkgs, pkg)
 	}
+	feed.lossyFeedAlerter.ProcessPackages(FeedName, pkgs)
+
 	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
 	return pkgs, nil
 }

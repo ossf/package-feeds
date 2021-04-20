@@ -88,22 +88,26 @@ func AddTo(ls *[]int, value int) {
 func (config *ScheduledFeedConfig) GetScheduledFeeds() (map[string]feeds.ScheduledFeed, error) {
 	var err error
 	scheduledFeeds := map[string]feeds.ScheduledFeed{}
+	eventHandler, err := config.GetEventHandler()
+	if err != nil {
+		return nil, err
+	}
 	for _, entry := range config.EnabledFeeds {
 		switch entry {
 		case crates.FeedName:
-			scheduledFeeds[entry] = crates.Feed{}
+			scheduledFeeds[entry] = crates.New(eventHandler)
 		case goproxy.FeedName:
 			scheduledFeeds[entry] = goproxy.Feed{}
 		case npm.FeedName:
-			scheduledFeeds[entry] = npm.Feed{}
+			scheduledFeeds[entry] = npm.New(eventHandler)
 		case nuget.FeedName:
 			scheduledFeeds[entry] = nuget.Feed{}
 		case pypi.FeedName:
-			scheduledFeeds[entry] = pypi.Feed{}
+			scheduledFeeds[entry] = pypi.New(eventHandler)
 		case packagist.FeedName:
 			scheduledFeeds[entry] = packagist.Feed{}
 		case rubygems.FeedName:
-			scheduledFeeds[entry] = rubygems.Feed{}
+			scheduledFeeds[entry] = rubygems.New(eventHandler)
 		default:
 			err = fmt.Errorf("%w : %v", errUnknownFeed, entry)
 		}
