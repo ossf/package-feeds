@@ -37,8 +37,7 @@ func fetchPackages(url string) ([]*Package, error) {
 	return response, err
 }
 
-type Feed struct {
-}
+type Feed struct{}
 
 func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}

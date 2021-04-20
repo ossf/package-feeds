@@ -22,6 +22,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
+
     - name: Run tests
       run: go test -v ./...
 
@@ -44,14 +49,14 @@ jobs:
       run: cp .feedMakefile ${{ matrix.feed }}/Makefile
       working-directory: ./feeds
 
-    - name: Add .gitignore to each feed
+    - name: Add .gitignore
       run: echo -en "bin*\nMakefile\n.gitignore" > ${{ matrix.feed }}/.gitignore
       working-directory: ./feeds
 
-    - name: Build feeds
+    - name: Build feed
       run: make build FEED=${{ matrix.feed }}
       working-directory: ./feeds/${{ matrix.feed }}
 
-    - name: Verify feeds
+    - name: Verify feed
       run: make verify FEED=${{ matrix.feed }}
       working-directory: ./feeds/${{ matrix.feed }}

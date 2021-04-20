@@ -1,6 +1,7 @@
 package rubygems
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -23,7 +24,6 @@ func TestRubyLatest(t *testing.T) {
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 	pkgs, err := feed.Latest(cutoff)
-
 	if err != nil {
 		t.Fatalf("feed.Latest returned error: %v", err)
 	}
@@ -43,10 +43,6 @@ func TestRubyLatest(t *testing.T) {
 		}
 	}
 
-	if fooPkg == nil || barPkg == nil {
-		t.Errorf("Expected package not found from rubygems Feed.Latest()")
-	}
-
 	if fooPkg.Version != "0.13.0" {
 		t.Errorf("Unexpected version `%s` found in place of expected `0.13.0`", pkgs[0].Version)
 	}
@@ -62,7 +58,7 @@ func TestRubyLatest(t *testing.T) {
 }
 
 func rubyGemsPackagesResponse(w http.ResponseWriter, r *http.Request) {
-	_, _ = w.Write([]byte(`
+	_, err := w.Write([]byte(`
 [
 	{
 		"name": "FooPackage",
@@ -119,4 +115,7 @@ func rubyGemsPackagesResponse(w http.ResponseWriter, r *http.Request) {
 ]
 
 `))
+	if err != nil {
+		fmt.Println("Unexpected error during mock http server write: %w", err)
+	}
 }

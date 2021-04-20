@@ -9,6 +9,7 @@ type versionInfo struct {
 	Time              time.Time `json:"time"`
 	Name              string    `json:"name,omitempty"`
 }
+
 type packages struct {
 	Packages map[string][]versionInfo `json:"packages"`
 }

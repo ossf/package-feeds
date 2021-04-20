@@ -1,6 +1,7 @@
 package packagist
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -9,6 +10,8 @@ import (
 )
 
 func TestFetch(t *testing.T) {
+	t.Parallel()
+
 	handlers := map[string]testutils.HttpHandlerFunc{
 		"/p2/":                   versionMock,
 		"/metadata/changes.json": changesMock,
@@ -40,19 +43,60 @@ func TestFetch(t *testing.T) {
 func changesMock(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("since") == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":"Invalid or missing \u0022since\u0022 query parameter, make sure you store the timestamp at the initial point you started mirroring, then send that to begin receiving changes, e.g. https:\/\/packagist.org\/metadata\/changes.json?since=16145146222715 for example.","timestamp":16145146222715}`))
+		_, err := w.Write([]byte(`{"error":"Invalid or missing \u0022since\u0022 query parameter,
+		make sure you store the timestamp at the initial point you started mirroring,
+		then send that to begin receiving changes,
+		e.g. https:\/\/packagist.org\/metadata\/changes.json?since=16145146222715 for example."
+		,"timestamp":16145146222715}`))
+		if err != nil {
+			fmt.Println("Unexpected error during mock http server write: %w", err)
+		}
 	}
-	_, _ = w.Write([]byte(`{"actions":[{"type":"delete","package":"to-delete/deleted-package","time":1614513806},{"type":"update","package":"ossf/package","time":1614514502},{"type":"update","package":"ossf/package~dev","time":1614514502}],"timestamp":16145145025048}`))
+	_, err := w.Write([]byte(`{"actions":[{"type":"delete","package":"to-delete/deleted-package",
+	"time":1614513806},{"type":"update","package":"ossf/package","time":1614514502},
+	{"type":"update","package":"ossf/package~dev","time":1614514502}],"timestamp":16145145025048}`))
+	if err != nil {
+		fmt.Println("Unexpected error during mock http server write: %w", err)
+	}
 }
 
 func versionMock(w http.ResponseWriter, r *http.Request) {
 	m := map[string]string{
-		"/p2/ossf/package.json":     `{"packages":{"ossf/package":[{"name":"ossf/package","description":"Lorem Ipsum","keywords":["Lorem Ipsum 1","Lorem Ipsum 2"],"homepage":"","version":"v1.0.0","version_normalized":"1.0.0.0","license":["MIT"],"authors":[{"name":"John Doe","email":"john.doe@local"}],"source":{"type":"git","url":"https://github.com/ossf/package.git","reference":"c3afaa087afb42bfaf40fc3cda1252cd9a653d7f"},"dist":{"type":"zip","url":"https://api.github.com/repos/ossf/package/zipball/c3afaa087afb42bfaf40fc3cda1252cd9a653d7f","reference":"c3afaa087afb42bfaf40fc3cda1252cd9a653d7f","shasum":""},"type":"library","time":"2021-02-28T12:20:03+00:00","autoload":{"psr-4":{"package\\":"src/"}},"require":{"php":"^8.0","guzzlehttp/guzzle":"^7.2"},"require-dev":{"codeception/codeception":"^4.1","codeception/module-phpbrowser":"^1.0.0","codeception/module-asserts":"^1.0.0","hoa/console":"^3.17"},"support":{"issues":"https://github.com/ossf/package/issues","source":"https://github.com/ossf/package/tree/v1.0.0"}}]},"minified":"composer/2.0"}`,
-		"/p2/ossf/package~dev.json": `{"packages":{"ossf/package":[{"name":"ossf/package","description":"Lorem Ipsum","keywords":["Lorem Ipsum 1","Lorem Ipsum 2"],"homepage":"","version":"dev-master","version_normalized":"dev-master","license":["MIT"],"authors":[{"name":"John Doe","email":"john.doe@local"}],"source":{"type":"git","url":"https://github.com/ossf/package.git","reference":"c3afaa087afb42bfaf40fc3cda1252cd9a653d7f"},"dist":{"type":"zip","url":"https://api.github.com/repos/ossf/package/zipball/c3afaa087afb42bfaf40fc3cda1252cd9a653d7f","reference":"c3afaa087afb42bfaf40fc3cda1252cd9a653d7f","shasum":""},"type":"library","time":"2021-02-28T12:20:03+00:00","autoload":{"psr-4":{"package\\":"src/"}},"default-branch":true,"require":{"php":"^8.0","guzzlehttp/guzzle":"^7.2"},"require-dev":{"codeception/codeception":"^4.1","codeception/module-phpbrowser":"^1.0.0","codeception/module-asserts":"^1.0.0","hoa/console":"^3.17"},"support":{"issues":"https://github.com/ossf/package/issues","source":"https://github.com/ossf/package/tree/v1.0.0"}}]},"minified":"composer/2.0"}`,
+		"/p2/ossf/package.json": `{"packages":{"ossf/package":[{"name":"ossf/package",
+		"description":"Lorem Ipsum","keywords":["Lorem Ipsum 1","Lorem Ipsum 2"],"homepage":"",
+		"version":"v1.0.0","version_normalized":"1.0.0.0","license":["MIT"],
+		"authors":[{"name":"John Doe","email":"john.doe@local"}],
+		"source":{"type":"git","url":"https://github.com/ossf/package.git","reference":
+		"c3afaa087afb42bfaf40fc3cda1252cd9a653d7f"},"dist":{"type":"zip","url":
+		"https://api.github.com/repos/ossf/package/zipball/c3afaa087afb42bfaf40fc3cda1252cd9a653d7f",
+		"reference":"c3afaa087afb42bfaf40fc3cda1252cd9a653d7f","shasum":""},"type":"library",
+		"time":"2021-02-28T12:20:03+00:00","autoload":{"psr-4":{"package\\":"src/"}},
+		"require":{"php":"^8.0","guzzlehttp/guzzle":"^7.2"},
+		"require-dev":{"codeception/codeception":"^4.1","codeception/module-phpbrowser":"^1.0.0",
+		"codeception/module-asserts":"^1.0.0","hoa/console":"^3.17"},
+		"support":{"issues":"https://github.com/ossf/package/issues",
+		"source":"https://github.com/ossf/package/tree/v1.0.0"}}]},"minified":"composer/2.0"}`,
+		"/p2/ossf/package~dev.json": `{"packages":{"ossf/package":[{"name":"ossf/package",
+		"description":"Lorem Ipsum","keywords":["Lorem Ipsum 1","Lorem Ipsum 2"],"homepage":"",
+		"version":"dev-master","version_normalized":"dev-master","license":["MIT"],
+		"authors":[{"name":"John Doe","email":"john.doe@local"}],
+		"source":{"type":"git","url":"https://github.com/ossf/package.git","reference":
+		"c3afaa087afb42bfaf40fc3cda1252cd9a653d7f"},"dist":{"type":"zip","url":
+		"https://api.github.com/repos/ossf/package/zipball/c3afaa087afb42bfaf40fc3cda1252cd9a653d7f",
+		"reference":"c3afaa087afb42bfaf40fc3cda1252cd9a653d7f","shasum":""},"type":"library",
+		"time":"2021-02-28T12:20:03+00:00","autoload":{"psr-4":{"package\\":"src/"}},
+		"default-branch":true,"require":{"php":"^8.0","guzzlehttp/guzzle":"^7.2"},
+		"require-dev":{"codeception/codeception":"^4.1","codeception/module-phpbrowser":"^1.0.0",
+		"codeception/module-asserts":"^1.0.0","hoa/console":"^3.17"},
+		"support":{"issues":"https://github.com/ossf/package/issues",
+		"source":"https://github.com/ossf/package/tree/v1.0.0"}}]},"minified":"composer/2.0"}`,
 	}
 	for u, response := range m {
 		if u == r.URL.String() {
-			_, _ = w.Write([]byte(response))
+			_, err := w.Write([]byte(response))
+			if err != nil {
+				fmt.Println("Unexpected error during mock http server write: %w", err)
+			}
 			return
 		}
 	}
