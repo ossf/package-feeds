@@ -1,12 +1,8 @@
 GO ?= go
-
-PROJECT := package-feeds-goproxy
 BIN := bin
-GOOS   ?= $(shell uname | tr A-Z a-z)
-
+GOOS ?= $(shell uname | tr A-Z a-z)
 GOLANGCI_LINT_VERSION = v1.35.2
-$(BIN_DIR):
-	mkdir -p bin
+PROJECT := package-feeds
 
 .PHONY: help
 help:  ## Display this help
@@ -26,9 +22,9 @@ help:  ## Display this help
 		' $(MAKEFILE_LIST)
 
 .PHONY: build
-build: $(BIN_DIR)
-	env CGO_ENABLED=0 GOOS=$(GOOS) go build -a -o $(BIN)/$(PROJECT)
-
+build:
+	mkdir -p $(BIN)/$(PROJECT) && \
+	env CGO_ENABLED=0 GOOS=$(GOOS) go build -o $(BIN)/$(PROJECT) -a ./...
 
 .PHONY: clean
 clean: ## Clean the build directory
@@ -46,13 +42,13 @@ verify: verify-go-mod verify-go-lint ## Run all verification targets
 
 .PHONY: verify-go-mod
 verify-go-mod: go-mod ## Verify the go modules
-	../../hacks/tree-status
+	./hacks/tree-status
 
 .PHONY: verify-go-lint
 verify-go-lint: golangci-lint ## Verify the golang code by linting
-	$(BIN)/golangci-lint run
+	$(BIN)/golangci-lint run -c ./.golangci.yml
 
-golangci-lint: $(BIN_DIR)
+golangci-lint:
 	export \
 		VERSION=$(GOLANGCI_LINT_VERSION) \
 		URL=https://raw.githubusercontent.com/golangci/golangci-lint \

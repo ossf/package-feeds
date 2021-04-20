@@ -71,7 +71,7 @@ linters:
     # - wsl
 linters-settings:
   gci:
-    local-prefixes: sigs.k8s.io/security-profiles-operator
+    local-prefixes: github.com/ossf/package-feeds
   errcheck:
     check-type-assertions: true
     check-blank: true
