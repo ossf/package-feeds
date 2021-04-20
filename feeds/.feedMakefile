@@ -1,6 +1,6 @@
 GO ?= go
 
-PROJECT := package-feeds-goproxy
+PROJECT := package-feeds-$(FEED)
 BIN := bin
 GOOS   ?= $(shell uname | tr A-Z a-z)
 
@@ -50,7 +50,7 @@ verify-go-mod: go-mod ## Verify the go modules
 
 .PHONY: verify-go-lint
 verify-go-lint: golangci-lint ## Verify the golang code by linting
-	$(BIN)/golangci-lint run
+	$(BIN)/golangci-lint run -c ../.golangci.yml
 
 golangci-lint: $(BIN_DIR)
 	export \
