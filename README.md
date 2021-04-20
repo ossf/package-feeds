@@ -59,3 +59,5 @@ The default `cutoff_delta` is 5 minutes, this is used to generate a cutoff point
 If you want to get involved or have ideas you'd like to chat about, we discuss this project in the [OSSF Securing Critical Projects Working Group](https://github.com/ossf/wg-securing-critical-projects) meetings.
 
 See the [Community Calendar](https://calendar.google.com/calendar?cid=czYzdm9lZmhwNWk5cGZsdGI1cTY3bmdwZXNAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ) for the schedule and meeting invitations.
+
+PR's are linted using `golangci-lint` with the following [config file](./.golangci.yml). If you wish to run this locally, see the [install docs](https://golangci-lint.run/usage/install/#local-installation).
