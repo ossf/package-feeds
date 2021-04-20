@@ -77,11 +77,9 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 		return pkgs, fmt.Errorf("error fetching packages: %w", err)
 	}
 	for _, pkg := range packages {
-		pkg, err := feeds.NewPackage(pkg.ModifiedDate, cutoff, pkg.Title, pkg.Version, FeedName)
-		if err != nil {
-			continue
-		}
+		pkg := feeds.NewPackage(pkg.ModifiedDate, pkg.Title, pkg.Version, FeedName)
 		pkgs = append(pkgs, pkg)
 	}
+	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
 	return pkgs, nil
 }

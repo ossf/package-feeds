@@ -81,11 +81,9 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 		return pkgs, err
 	}
 	for _, pkg := range pypiPackages {
-		pkg, err := feeds.NewPackage(pkg.CreatedDate.Time, cutoff, pkg.Name(), pkg.Version(), FeedName)
-		if err != nil {
-			continue
-		}
+		pkg := feeds.NewPackage(pkg.CreatedDate.Time, pkg.Name(), pkg.Version(), FeedName)
 		pkgs = append(pkgs, pkg)
 	}
+	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
 	return pkgs, nil
 }

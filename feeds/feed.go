@@ -1,16 +1,10 @@
 package feeds
 
 import (
-	"errors"
-	"fmt"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const schemaVer = "1.0"
-
-var errCutoff = errors.New("package was created before cutoff time")
 
 type ScheduledFeed interface {
 	Latest(cutoff time.Time) ([]*Package, error)
@@ -25,21 +19,22 @@ type Package struct {
 	SchemaVer   string    `json:"schema_ver"`
 }
 
-func NewPackage(created, cutoff time.Time, name, version, feed string) (*Package, error) {
-	if created.Before(cutoff) {
-		return nil, fmt.Errorf("%w : %s", errCutoff, cutoff.String())
-	}
-	log.WithFields(log.Fields{
-		"feed":    feed,
-		"name":    name,
-		"version": version,
-	}).Print("Processing Package")
-	pkg := &Package{
+func NewPackage(created time.Time, name, version, feed string) *Package {
+	return &Package{
 		Name:        name,
 		Version:     version,
 		CreatedDate: created,
 		Type:        feed,
 		SchemaVer:   schemaVer,
 	}
-	return pkg, nil
+}
+
+func ApplyCutoff(pkgs []*Package, cutoff time.Time) []*Package {
+	filteredPackages := []*Package{}
+	for _, pkg := range pkgs {
+		if !pkg.CreatedDate.Before(cutoff) {
+			filteredPackages = append(filteredPackages, pkg)
+		}
+	}
+	return filteredPackages
 }

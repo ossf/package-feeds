@@ -102,11 +102,9 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 		if err != nil {
 			return pkgs, fmt.Errorf("error in fetching version information: %w", err)
 		}
-		pkg, err := feeds.NewPackage(pkg.CreatedDate.Time, cutoff, pkg.Title, v, FeedName)
-		if err != nil {
-			continue
-		}
+		pkg := feeds.NewPackage(pkg.CreatedDate.Time, pkg.Title, v, FeedName)
 		pkgs = append(pkgs, pkg)
 	}
+	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
 	return pkgs, nil
 }
