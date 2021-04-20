@@ -12,12 +12,12 @@ import (
 func TestNpmLatest(t *testing.T) {
 	t.Parallel()
 
-	handlers := map[string]testutils.HttpHandlerFunc{
+	handlers := map[string]testutils.HTTPHandlerFunc{
 		"/-/rss/":     npmLatestPackagesResponse,
 		"/FooPackage": fooVersionInfoResponse,
 		"/BarPackage": barVersionInfoResponse,
 	}
-	srv := testutils.HttpServerMock(handlers)
+	srv := testutils.HTTPServerMock(handlers)
 
 	baseURL = srv.URL + "/-/rss/"
 	versionURL = srv.URL + "/"

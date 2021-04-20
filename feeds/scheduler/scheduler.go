@@ -1,21 +1,22 @@
 package scheduler
 
 import (
-	"github.com/ossf/package-feeds/feeds"
 	"time"
 
 	log "github.com/sirupsen/logrus"
+
+	"github.com/ossf/package-feeds/feeds"
 )
 
-// Scheduler is a registry of feeds that should be run on a schedule
+// Scheduler is a registry of feeds that should be run on a schedule.
 type Scheduler struct {
 	registry map[string]feeds.ScheduledFeed
 }
 
-// New returns a new Scheduler with configured feeds registered
-func New(feeds map[string]feeds.ScheduledFeed) *Scheduler {
+// New returns a new Scheduler with configured feeds registered.
+func New(feedsMap map[string]feeds.ScheduledFeed) *Scheduler {
 	return &Scheduler{
-		registry: feeds,
+		registry: feedsMap,
 	}
 }
 
@@ -26,7 +27,7 @@ type pollResult struct {
 	err      error
 }
 
-// Poll fetches the latest packages from each registered feed
+// Poll fetches the latest packages from each registered feed.
 func (s *Scheduler) Poll(cutoff time.Time) ([]*feeds.Package, []error) {
 	results := make(chan pollResult)
 	for name, feed := range s.registry {

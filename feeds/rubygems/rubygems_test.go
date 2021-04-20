@@ -12,18 +12,17 @@ import (
 func TestRubyLatest(t *testing.T) {
 	t.Parallel()
 
-	handlers := map[string]testutils.HttpHandlerFunc{
+	handlers := map[string]testutils.HTTPHandlerFunc{
 		"/api/v1/activity/latest.json":       rubyGemsPackagesResponse,
 		"/api/v1/activity/just_updated.json": rubyGemsPackagesResponse,
 	}
-	srv := testutils.HttpServerMock(handlers)
+	srv := testutils.HTTPServerMock(handlers)
 
 	baseURL = srv.URL + "/api/v1/activity"
 	feed := Feed{}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 	pkgs, err := feed.Latest(cutoff)
-
 	if err != nil {
 		t.Fatalf("feed.Latest returned error: %v", err)
 	}
@@ -43,10 +42,6 @@ func TestRubyLatest(t *testing.T) {
 		}
 	}
 
-	if fooPkg == nil || barPkg == nil {
-		t.Errorf("Expected package not found from rubygems Feed.Latest()")
-	}
-
 	if fooPkg.Version != "0.13.0" {
 		t.Errorf("Unexpected version `%s` found in place of expected `0.13.0`", pkgs[0].Version)
 	}
@@ -62,7 +57,7 @@ func TestRubyLatest(t *testing.T) {
 }
 
 func rubyGemsPackagesResponse(w http.ResponseWriter, r *http.Request) {
-	_, _ = w.Write([]byte(`
+	_, err := w.Write([]byte(`
 [
 	{
 		"name": "FooPackage",
@@ -119,4 +114,7 @@ func rubyGemsPackagesResponse(w http.ResponseWriter, r *http.Request) {
 ]
 
 `))
+	if err != nil {
+		http.Error(w, testutils.UnexpectedWriteError(err), http.StatusInternalServerError)
+	}
 }

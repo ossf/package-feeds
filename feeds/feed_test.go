@@ -8,7 +8,7 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-const schema_path = "../package.schema.json"
+const schemaPath = "../package.schema.json"
 
 type extendPackage struct {
 	*Package
@@ -16,7 +16,7 @@ type extendPackage struct {
 }
 
 var (
-	schemaLoader = gojsonschema.NewReferenceLoader("file://" + schema_path)
+	schemaLoader = gojsonschema.NewReferenceLoader("file://" + schemaPath)
 	dummyPackage = &Package{
 		Name:        "foobarpackage",
 		Version:     "1.0.0",
@@ -31,7 +31,6 @@ func TestValidSchema(t *testing.T) {
 
 	validPackage := gojsonschema.NewGoLoader(dummyPackage)
 	result, err := gojsonschema.Validate(schemaLoader, validPackage)
-
 	if err != nil {
 		panic(err.Error())
 	}
@@ -51,10 +50,9 @@ func TestInvalidSchema(t *testing.T) {
 	// The Schema defines that additional properties are not valid, ensure enforcement
 	// against an extra struct field. If an extra field is added, the SchemVer minor should
 	// be incremented to advertise an additive change.
-	invalid_package := &extendPackage{dummyPackage, "extrafield"}
-	invalidField := gojsonschema.NewGoLoader(invalid_package)
+	invalidPackage := &extendPackage{dummyPackage, "extrafield"}
+	invalidField := gojsonschema.NewGoLoader(invalidPackage)
 	result, err := gojsonschema.Validate(schemaLoader, invalidField)
-
 	if err != nil {
 		panic(err.Error())
 	}
@@ -68,7 +66,6 @@ func TestInvalidSchema(t *testing.T) {
 	dummyPackage.SchemaVer = ""
 	invalidFormat := gojsonschema.NewGoLoader(dummyPackage)
 	result, err = gojsonschema.Validate(schemaLoader, invalidFormat)
-
 	if err != nil {
 		panic(err.Error())
 	}
@@ -76,5 +73,4 @@ func TestInvalidSchema(t *testing.T) {
 	if result.Valid() {
 		t.Fatalf("Non-conformant field format incorrectly validated")
 	}
-
 }
