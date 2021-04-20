@@ -2,6 +2,7 @@ package nuget
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -19,6 +20,7 @@ var (
 	httpClient = http.Client{
 		Timeout: 10 * time.Second,
 	}
+	errCatalogService = errors.New("error fetching catalog service")
 )
 
 type serviceIndex struct {
@@ -53,6 +55,7 @@ type nugetPackageDetails struct {
 }
 
 func fetchCatalogService() (*nugetService, error) {
+	var err error
 	resp, err := httpClient.Get(feedURL)
 	if err != nil {
 		return nil, err
@@ -71,8 +74,8 @@ func fetchCatalogService() (*nugetService, error) {
 			return service, nil
 		}
 	}
-
-	return nil, fmt.Errorf("Could not locate catalog service for nuget feed (%s)", feedURL)
+	return nil, fmt.Errorf("%w : could not locate catalog service for nuget feed %s",
+		errCatalogService, feedURL)
 }
 
 func fetchCatalogPages(catalogURL string) ([]*catalogPage, error) {

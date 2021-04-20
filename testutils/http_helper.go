@@ -1,13 +1,14 @@
 package testutils
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 )
 
-type HttpHandlerFunc func(w http.ResponseWriter, r *http.Request)
+type HTTPHandlerFunc func(w http.ResponseWriter, r *http.Request)
 
-func HttpServerMock(handlerFuncs map[string]HttpHandlerFunc) *httptest.Server {
+func HTTPServerMock(handlerFuncs map[string]HTTPHandlerFunc) *httptest.Server {
 	handler := http.NewServeMux()
 	for endpoint, f := range handlerFuncs {
 		handler.HandleFunc(endpoint, f)
@@ -15,4 +16,8 @@ func HttpServerMock(handlerFuncs map[string]HttpHandlerFunc) *httptest.Server {
 	srv := httptest.NewServer(handler)
 
 	return srv
+}
+
+func UnexpectedWriteError(err error) string {
+	return fmt.Sprintf("Unexpected error during mock http server write: %s", err.Error())
 }

@@ -3,11 +3,15 @@ package config
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
+
+	"github.com/mitchellh/mapstructure"
+	"gopkg.in/yaml.v3"
 
 	"github.com/ossf/package-feeds/feeds"
 	"github.com/ossf/package-feeds/feeds/crates"
@@ -21,12 +25,14 @@ import (
 	"github.com/ossf/package-feeds/publisher/gcppubsub"
 	"github.com/ossf/package-feeds/publisher/kafkapubsub"
 	"github.com/ossf/package-feeds/publisher/stdout"
-	"gopkg.in/yaml.v3"
-
-	"github.com/mitchellh/mapstructure"
 )
 
-// Loads a ScheduledFeedConfig struct from a yaml config file
+var (
+	errUnknownFeed = errors.New("unknown feed type")
+	errUnknownPub  = errors.New("unknown publisher type")
+)
+
+// Loads a ScheduledFeedConfig struct from a yaml config file.
 func FromFile(configPath string) (*ScheduledFeedConfig, error) {
 	data, err := ioutil.ReadFile(configPath)
 	if err != nil {
@@ -36,11 +42,11 @@ func FromFile(configPath string) (*ScheduledFeedConfig, error) {
 	return NewConfigFromBytes(data)
 }
 
-// Loads a ScheduledFeedConfig struct from a yaml bytes
-func NewConfigFromBytes(bytes []byte) (*ScheduledFeedConfig, error) {
+// Loads a ScheduledFeedConfig struct from a yaml bytes.
+func NewConfigFromBytes(yamlBytes []byte) (*ScheduledFeedConfig, error) {
 	config := Default()
 
-	err := unmarshalStrict(bytes, config)
+	err := unmarshalStrict(yamlBytes, config)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +55,7 @@ func NewConfigFromBytes(bytes []byte) (*ScheduledFeedConfig, error) {
 	return config, nil
 }
 
-// Applies environment variables to the configuration
+// Applies environment variables to the configuration.
 func (config *ScheduledFeedConfig) applyEnvVars() {
 	// Support legacy env var definition for gcp pub sub.
 	pubURL := os.Getenv("OSSMALWARE_TOPIC_URL")
@@ -66,7 +72,7 @@ func (config *ScheduledFeedConfig) applyEnvVars() {
 	port, err := strconv.Atoi(portStr)
 
 	if portProvided && err == nil {
-		config.HttpPort = port
+		config.HTTPPort = port
 	}
 }
 
@@ -74,11 +80,12 @@ func AddTo(ls *[]int, value int) {
 	*ls = append(*ls, value)
 }
 
-// Constructs a map of ScheduledFeeds to enable based on the EnabledFeeds provided from configuration, indexed by the feed type.
-func (sConfig *ScheduledFeedConfig) GetScheduledFeeds() (map[string]feeds.ScheduledFeed, error) {
+// Constructs a map of ScheduledFeeds to enable based on the EnabledFeeds provided
+// from configuration, indexed by the feed type.
+func (config *ScheduledFeedConfig) GetScheduledFeeds() (map[string]feeds.ScheduledFeed, error) {
 	var err error
 	scheduledFeeds := map[string]feeds.ScheduledFeed{}
-	for _, entry := range sConfig.EnabledFeeds {
+	for _, entry := range config.EnabledFeeds {
 		switch entry {
 		case crates.FeedName:
 			scheduledFeeds[entry] = crates.Feed{}
@@ -95,7 +102,7 @@ func (sConfig *ScheduledFeedConfig) GetScheduledFeeds() (map[string]feeds.Schedu
 		case rubygems.FeedName:
 			scheduledFeeds[entry] = rubygems.Feed{}
 		default:
-			err = fmt.Errorf("unknown feed type %v", entry)
+			err = fmt.Errorf("%w : %v", errUnknownFeed, entry)
 		}
 	}
 
@@ -112,14 +119,14 @@ func (pc PublisherConfig) ToPublisher(ctx context.Context) (publisher.Publisher,
 	var err error
 	switch pc.Type {
 	case gcppubsub.PublisherType:
-		var gcpConfig gcppubsub.GCPPubSubConfig
+		var gcpConfig gcppubsub.Config
 		err = strictDecode(pc.Config, &gcpConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode gcppubsub config: %w", err)
 		}
 		return gcppubsub.FromConfig(ctx, gcpConfig)
 	case kafkapubsub.PublisherType:
-		var kafkaConfig kafkapubsub.KafkaPubSubConfig
+		var kafkaConfig kafkapubsub.Config
 		err = strictDecode(pc.Config, &kafkaConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode kafkapubsub config: %w", err)
@@ -128,14 +135,14 @@ func (pc PublisherConfig) ToPublisher(ctx context.Context) (publisher.Publisher,
 	case stdout.PublisherType:
 		return stdout.New(), nil
 	default:
-		err = fmt.Errorf("unknown publisher type %v", pc.Type)
+		err = fmt.Errorf("%w : %v", errUnknownPub, pc.Type)
 	}
 	return nil, err
 }
 
 // Decode an input using mapstruct decoder with strictness enabled, errors will be returned in
 // the case of unused fields.
-func strictDecode(input interface{}, out interface{}) error {
+func strictDecode(input, out interface{}) error {
 	strictDecoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		ErrorUnused: true,
 		Result:      out,
@@ -160,7 +167,7 @@ func Default() *ScheduledFeedConfig {
 		PubConfig: PublisherConfig{
 			Type: stdout.PublisherType,
 		},
-		HttpPort:    8080,
+		HTTPPort:    8080,
 		CutoffDelta: "5m",
 		Timer:       false,
 	}
@@ -173,7 +180,7 @@ func Default() *ScheduledFeedConfig {
 func unmarshalStrict(data []byte, out interface{}) error {
 	dec := yaml.NewDecoder(bytes.NewReader(data))
 	dec.KnownFields(true)
-	if err := dec.Decode(out); err != nil && err != io.EOF {
+	if err := dec.Decode(out); err != nil && !errors.Is(err, io.EOF) {
 		return err
 	}
 	return nil

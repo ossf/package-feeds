@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"gocloud.dev/pubsub"
+
+	// Load gcp driver.
 	_ "gocloud.dev/pubsub/gcppubsub"
 )
 
@@ -15,7 +17,7 @@ type GCPPubSub struct {
 	topic *pubsub.Topic
 }
 
-type GCPPubSubConfig struct {
+type Config struct {
 	URL string `mapstructure:"url"`
 }
 
@@ -30,7 +32,7 @@ func New(ctx context.Context, url string) (*GCPPubSub, error) {
 	return pub, nil
 }
 
-func FromConfig(ctx context.Context, config GCPPubSubConfig) (*GCPPubSub, error) {
+func FromConfig(ctx context.Context, config Config) (*GCPPubSub, error) {
 	return New(ctx, config.URL)
 }
 

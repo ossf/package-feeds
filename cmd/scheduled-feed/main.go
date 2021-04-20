@@ -9,15 +9,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/robfig/cron"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/ossf/package-feeds/config"
 	"github.com/ossf/package-feeds/feeds/scheduler"
 	"github.com/ossf/package-feeds/publisher"
-
-	"github.com/robfig/cron"
-	log "github.com/sirupsen/logrus"
 )
 
-// FeedHandler is a handler that fetches new packages from various feeds
+// FeedHandler is a handler that fetches new packages from various feeds.
 type FeedHandler struct {
 	scheduler *scheduler.Scheduler
 	pub       publisher.Publisher
@@ -56,7 +56,10 @@ func (handler *FeedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "error polling for packages - see logs for more information", http.StatusInternalServerError)
 		return
 	}
-	w.Write([]byte(fmt.Sprintf("%d packages processed", processed)))
+	_, err := w.Write([]byte(fmt.Sprintf("%d packages processed", processed)))
+	if err != nil {
+		http.Error(w, "unexpected error during http server write: %w", http.StatusInternalServerError)
+	}
 }
 
 func main() {
@@ -88,7 +91,7 @@ func main() {
 	}
 	sched := scheduler.New(feeds)
 
-	log.Printf("listening on port %v", appConfig.HttpPort)
+	log.Printf("listening on port %v", appConfig.HTTPPort)
 	delta, err := time.ParseDuration(appConfig.CutoffDelta)
 	if err != nil {
 		log.Fatal(err)
@@ -103,22 +106,27 @@ func main() {
 		cronjob := cron.New()
 		crontab := fmt.Sprintf("@every %s", delta.String())
 		log.Printf("Running a timer %s", crontab)
-		cronjob.AddFunc(crontab, func() { cronrequest(appConfig.HttpPort) })
+		err := cronjob.AddFunc(crontab, func() { cronRequest(appConfig.HTTPPort) })
+		if err != nil {
+			log.Fatal(err)
+		}
 		cronjob.Start()
 	}
 
 	http.Handle("/", handler)
-	if err := http.ListenAndServe(fmt.Sprintf(":%v", appConfig.HttpPort), nil); err != nil {
+	if err := http.ListenAndServe(fmt.Sprintf(":%v", appConfig.HTTPPort), nil); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func cronrequest(port int) {
+func cronRequest(port int) {
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
-	_, err := client.Get(fmt.Sprintf("http://localhost:%v", port))
+	resp, err := client.Get(fmt.Sprintf("http://localhost:%v", port))
 	if err != nil {
 		log.Printf("http request failed: %v", err)
+		return
 	}
+	resp.Body.Close()
 }

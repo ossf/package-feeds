@@ -3,7 +3,7 @@ package config
 type ScheduledFeedConfig struct {
 	PubConfig    PublisherConfig `yaml:"publisher"`
 	EnabledFeeds []string        `yaml:"enabled_feeds"`
-	HttpPort     int             `yaml:"http_port,omitempty"`
+	HTTPPort     int             `yaml:"http_port,omitempty"`
 	CutoffDelta  string          `yaml:"cutoff_delta"`
 	Timer        bool            `yaml:"timer"`
 }

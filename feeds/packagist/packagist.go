@@ -21,6 +21,7 @@ type response struct {
 	Actions   []actions `json:"actions"`
 	Timestamp int64     `json:"timestamp"`
 }
+
 type actions struct {
 	Type    string `json:"type"`
 	Package string `json:"package"`
@@ -86,7 +87,7 @@ func fetchVersionInformation(cutoff time.Time, action actions) ([]*feeds.Package
 	return pkgs, nil
 }
 
-// Latest returns all package updates of packagist packages since cutoff
+// Latest returns all package updates of packagist packages since cutoff.
 func (f Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}
 	packages, err := fetchPackages(cutoff)

@@ -15,9 +15,9 @@ type KafkaPubSub struct {
 	topic *pubsub.Topic
 }
 
-type KafkaPubSubConfig struct {
+type Config struct {
 	Brokers []string `mapstructure:"brokers"`
-	Topic   string `mapstructure:"topic"`
+	Topic   string   `mapstructure:"topic"`
 }
 
 func New(ctx context.Context, brokers []string, topic string) (*KafkaPubSub, error) {
@@ -32,7 +32,7 @@ func New(ctx context.Context, brokers []string, topic string) (*KafkaPubSub, err
 	}, nil
 }
 
-func FromConfig(ctx context.Context, config KafkaPubSubConfig) (*KafkaPubSub, error) {
+func FromConfig(ctx context.Context, config Config) (*KafkaPubSub, error) {
 	return New(ctx, config.Brokers, config.Topic)
 }
 

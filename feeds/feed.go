@@ -1,6 +1,7 @@
 package feeds
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -9,11 +10,13 @@ import (
 
 const schemaVer = "1.0"
 
+var errCutoff = errors.New("package was created before cutoff time")
+
 type ScheduledFeed interface {
 	Latest(cutoff time.Time) ([]*Package, error)
 }
 
-// Marshalled json output validated against package.schema.json
+// Marshalled json output validated against package.schema.json.
 type Package struct {
 	Name        string    `json:"name"`
 	Version     string    `json:"version"`
@@ -24,7 +27,7 @@ type Package struct {
 
 func NewPackage(created, cutoff time.Time, name, version, feed string) (*Package, error) {
 	if created.Before(cutoff) {
-		return nil, fmt.Errorf("package was created before cutoff time: %s", cutoff.String())
+		return nil, fmt.Errorf("%w : %s", errCutoff, cutoff.String())
 	}
 	log.WithFields(log.Fields{
 		"feed":    feed,

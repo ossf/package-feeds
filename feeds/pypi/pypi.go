@@ -72,8 +72,7 @@ func fetchPackages() ([]*Package, error) {
 	return rssResponse.Packages, nil
 }
 
-type Feed struct {
-}
+type Feed struct{}
 
 func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}

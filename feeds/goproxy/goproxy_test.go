@@ -12,10 +12,10 @@ import (
 func TestGoProxyLatest(t *testing.T) {
 	t.Parallel()
 
-	handlers := map[string]testutils.HttpHandlerFunc{
+	handlers := map[string]testutils.HTTPHandlerFunc{
 		"/index": goproxyPackageResponse,
 	}
-	srv := testutils.HttpServerMock(handlers)
+	srv := testutils.HTTPServerMock(handlers)
 
 	baseURL = srv.URL + "/index"
 	feed := Feed{}
