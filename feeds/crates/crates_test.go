@@ -1,6 +1,7 @@
 package crates
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -47,7 +48,7 @@ func TestCratesLatest(t *testing.T) {
 }
 
 func cratesSummaryResponse(w http.ResponseWriter, r *http.Request) {
-	_, _ = w.Write([]byte(`
+	_, err := w.Write([]byte(`
 {
 	"just_updated": [
 		{
@@ -109,4 +110,7 @@ func cratesSummaryResponse(w http.ResponseWriter, r *http.Request) {
 		]
 }
 `))
+	if err != nil {
+		fmt.Println("Unexpected error during mock http server write: %w", err)
+	}
 }
