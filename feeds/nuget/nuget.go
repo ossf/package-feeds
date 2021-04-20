@@ -171,13 +171,14 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 				return nil, err
 			}
 
-			pkg, err := feeds.NewPackage(pkgInfo.Created, cutoff, pkgInfo.PackageID, pkgInfo.Version, FeedName)
+			pkg := feeds.NewPackage(pkgInfo.Created, pkgInfo.PackageID, pkgInfo.Version, FeedName)
 			if err != nil {
 				continue
 			}
 			pkgs = append(pkgs, pkg)
 		}
 	}
+	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
 
 	return pkgs, nil
 }

@@ -58,11 +58,9 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	}
 
 	for _, pkg := range packages {
-		pkg, err := feeds.NewPackage(pkg.CreatedDate, cutoff, pkg.Name, pkg.Version, FeedName)
-		if err != nil {
-			continue
-		}
+		pkg := feeds.NewPackage(pkg.CreatedDate, pkg.Name, pkg.Version, FeedName)
 		pkgs = append(pkgs, pkg)
 	}
+	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
 	return pkgs, nil
 }

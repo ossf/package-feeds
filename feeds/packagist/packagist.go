@@ -57,7 +57,7 @@ func fetchPackages(since time.Time) ([]actions, error) {
 	return apiResponse.Actions, nil
 }
 
-func fetchVersionInformation(cutoff time.Time, action actions) ([]*feeds.Package, error) {
+func fetchVersionInformation(action actions) ([]*feeds.Package, error) {
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
@@ -76,7 +76,7 @@ func fetchVersionInformation(cutoff time.Time, action actions) ([]*feeds.Package
 	pkgs := []*feeds.Package{}
 	for pkgName, versions := range versionResponse.Packages {
 		for _, version := range versions {
-			pkg, err := feeds.NewPackage(version.Time, cutoff, pkgName, version.Version, FeedName)
+			pkg := feeds.NewPackage(version.Time, pkgName, version.Version, FeedName)
 			if err != nil {
 				continue
 			}
@@ -101,11 +101,12 @@ func (f Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 		if pkg.Type == "delete" {
 			continue
 		}
-		updates, err := fetchVersionInformation(cutoff, pkg)
+		updates, err := fetchVersionInformation(pkg)
 		if err != nil {
 			return nil, fmt.Errorf("error in fetching version information: %w", err)
 		}
 		pkgs = append(pkgs, updates...)
 	}
+	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
 	return pkgs, nil
 }

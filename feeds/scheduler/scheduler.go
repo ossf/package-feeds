@@ -44,11 +44,19 @@ func (s *Scheduler) Poll(cutoff time.Time) ([]*feeds.Package, []error) {
 	packages := []*feeds.Package{}
 	for i := 0; i < len(s.registry); i++ {
 		result := <-results
+
 		logger := log.WithField("feed", result.name)
 		if result.err != nil {
 			logger.WithError(result.err).Error("error fetching packages")
 			errs = append(errs, result.err)
 			continue
+		}
+		for _, pkg := range result.packages {
+			log.WithFields(log.Fields{
+				"feed":    result.name,
+				"name":    pkg.Name,
+				"version": pkg.Version,
+			}).Print("Processing Package")
 		}
 		packages = append(packages, result.packages...)
 		logger.WithField("num_processed", len(result.packages)).Print("processed packages")
