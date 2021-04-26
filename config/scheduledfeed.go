@@ -167,9 +167,9 @@ func Default() *ScheduledFeedConfig {
 		PubConfig: PublisherConfig{
 			Type: stdout.PublisherType,
 		},
-		HTTPPort:    8080,
-		CutoffDelta: "5m",
-		Timer:       false,
+		HTTPPort: 8080,
+		PollRate: "5m",
+		Timer:    false,
 	}
 	config.applyEnvVars()
 	return config
