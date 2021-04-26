@@ -22,7 +22,7 @@ publisher:
     endpoint: "https://foobaz.com"
 
 http_port: 8080
-cutoff_delta: 5m
+poll_rate: 5m
 timer: true
 `
 	TestConfigStrUnknownFeedType = `

@@ -21,11 +21,13 @@ import (
 type FeedHandler struct {
 	scheduler *scheduler.Scheduler
 	pub       publisher.Publisher
-	delta     time.Duration
+	pollRate  time.Duration
+	lastPoll  time.Time
 }
 
 func (handler *FeedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	cutoff := time.Now().UTC().Add(-handler.delta)
+	cutoff := handler.getCutoff()
+	handler.lastPoll = time.Now().UTC()
 	pkgs, errs := handler.scheduler.Poll(cutoff)
 	if len(errs) > 0 {
 		for _, err := range errs {
@@ -62,6 +64,16 @@ func (handler *FeedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (handler FeedHandler) getCutoff() time.Time {
+	var cutoff time.Time
+	if handler.lastPoll.IsZero() {
+		cutoff = time.Now().UTC().Add(-handler.pollRate)
+	} else {
+		cutoff = handler.lastPoll
+	}
+	return cutoff
+}
+
 func main() {
 	configPath, useConfig := os.LookupEnv("PACKAGE_FEEDS_CONFIG_PATH")
 	var err error
@@ -92,19 +104,19 @@ func main() {
 	sched := scheduler.New(feeds)
 
 	log.Printf("listening on port %v", appConfig.HTTPPort)
-	delta, err := time.ParseDuration(appConfig.CutoffDelta)
+	pollRate, err := time.ParseDuration(appConfig.PollRate)
 	if err != nil {
 		log.Fatal(err)
 	}
 	handler := &FeedHandler{
 		scheduler: sched,
 		pub:       pub,
-		delta:     delta,
+		pollRate:  pollRate,
 	}
 
 	if appConfig.Timer {
 		cronjob := cron.New()
-		crontab := fmt.Sprintf("@every %s", delta.String())
+		crontab := fmt.Sprintf("@every %s", pollRate.String())
 		log.Printf("Running a timer %s", crontab)
 		err := cronjob.AddFunc(crontab, func() { cronRequest(appConfig.HTTPPort) })
 		if err != nil {

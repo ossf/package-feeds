@@ -4,7 +4,7 @@ type ScheduledFeedConfig struct {
 	PubConfig    PublisherConfig `yaml:"publisher"`
 	EnabledFeeds []string        `yaml:"enabled_feeds"`
 	HTTPPort     int             `yaml:"http_port,omitempty"`
-	CutoffDelta  string          `yaml:"cutoff_delta"`
+	PollRate     string          `yaml:"poll_rate"`
 	Timer        bool            `yaml:"timer"`
 }
 
