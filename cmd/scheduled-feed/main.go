@@ -13,6 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ossf/package-feeds/config"
+	"github.com/ossf/package-feeds/feeds"
 	"github.com/ossf/package-feeds/feeds/scheduler"
 	"github.com/ossf/package-feeds/publisher"
 )
@@ -26,39 +27,18 @@ type FeedHandler struct {
 }
 
 func (handler *FeedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	cutoff := handler.getCutoff()
-	handler.lastPoll = time.Now().UTC()
-	pkgs, errs := handler.scheduler.Poll(cutoff)
-	if len(errs) > 0 {
-		for _, err := range errs {
-			log.Errorf("error polling for new packages: %v", err)
-		}
+	var err error
+	pkgs, pollErrors := handler.pollFeeds()
+	processedPackages, err := handler.publishPackages(pkgs)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	processed := 0
-	for _, pkg := range pkgs {
-		processed++
-		log.WithFields(log.Fields{
-			"name":         pkg.Name,
-			"feed":         pkg.Type,
-			"created_date": pkg.CreatedDate,
-		}).Print("sending package upstream")
-		b, err := json.Marshal(pkg)
-		if err != nil {
-			log.Printf("error marshaling package: %#v", pkg)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		if err := handler.pub.Send(context.Background(), b); err != nil {
-			log.Printf("error sending package to upstream publisher %v", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-	if len(errs) > 0 {
+	if pollErrors {
 		http.Error(w, "error polling for packages - see logs for more information", http.StatusInternalServerError)
 		return
 	}
-	_, err := w.Write([]byte(fmt.Sprintf("%d packages processed", processed)))
+	_, err = w.Write([]byte(fmt.Sprintf("%d packages processed", processedPackages)))
 	if err != nil {
 		http.Error(w, "unexpected error during http server write: %w", http.StatusInternalServerError)
 	}
@@ -72,6 +52,42 @@ func (handler FeedHandler) getCutoff() time.Time {
 		cutoff = handler.lastPoll
 	}
 	return cutoff
+}
+
+func (handler *FeedHandler) pollFeeds() ([]*feeds.Package, bool) {
+	cutoff := handler.getCutoff()
+	handler.lastPoll = time.Now().UTC()
+	pkgs, errs := handler.scheduler.Poll(cutoff)
+	errors := false
+	if len(errs) > 0 {
+		errors = true
+		for _, err := range errs {
+			log.Errorf("error polling for new packages: %v", err)
+		}
+	}
+	return pkgs, errors
+}
+
+func (handler FeedHandler) publishPackages(pkgs []*feeds.Package) (int, error) {
+	processed := 0
+	for _, pkg := range pkgs {
+		log.WithFields(log.Fields{
+			"name":         pkg.Name,
+			"feed":         pkg.Type,
+			"created_date": pkg.CreatedDate,
+		}).Print("sending package upstream")
+		b, err := json.Marshal(pkg)
+		if err != nil {
+			log.Printf("error marshaling package: %#v", pkg)
+			return processed, err
+		}
+		if err := handler.pub.Send(context.Background(), b); err != nil {
+			log.Printf("error sending package to upstream publisher %v", err)
+			return processed, err
+		}
+		processed++
+	}
+	return processed, nil
 }
 
 func main() {
@@ -96,12 +112,12 @@ func main() {
 	}
 	log.Infof("using %q publisher", pub.Name())
 
-	feeds, err := appConfig.GetScheduledFeeds()
+	scheduledFeeds, err := appConfig.GetScheduledFeeds()
 	log.Infof("watching feeds: %v", strings.Join(appConfig.EnabledFeeds, ", "))
 	if err != nil {
 		log.Fatal(err)
 	}
-	sched := scheduler.New(feeds)
+	sched := scheduler.New(scheduledFeeds)
 
 	log.Printf("listening on port %v", appConfig.HTTPPort)
 	pollRate, err := time.ParseDuration(appConfig.PollRate)
