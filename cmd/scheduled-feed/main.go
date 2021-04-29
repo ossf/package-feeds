@@ -134,7 +134,7 @@ func main() {
 		cronjob := cron.New()
 		crontab := fmt.Sprintf("@every %s", pollRate.String())
 		log.Printf("Running a timer %s", crontab)
-		err := cronjob.AddFunc(crontab, func() { cronRequest(appConfig.HTTPPort) })
+		err := cronjob.AddFunc(crontab, func() { cronPoll(handler) })
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -147,14 +147,16 @@ func main() {
 	}
 }
 
-func cronRequest(port int) {
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-	resp, err := client.Get(fmt.Sprintf("http://localhost:%v", port))
+func cronPoll(handler *FeedHandler) {
+	pkgs, pollErrors := handler.pollFeeds()
+	processedPackages, err := handler.publishPackages(pkgs)
 	if err != nil {
-		log.Printf("http request failed: %v", err)
+		log.Errorf(err.Error())
 		return
 	}
-	resp.Body.Close()
+	if pollErrors {
+		// pollFeeds already logs with ErrorF.
+		return
+	}
+	log.Printf("%d packages processed", processedPackages)
 }
