@@ -58,13 +58,7 @@ func (handler *FeedHandler) pollFeeds() ([]*feeds.Package, bool) {
 	cutoff := handler.getCutoff()
 	handler.lastPoll = time.Now().UTC()
 	pkgs, errs := handler.scheduler.Poll(cutoff)
-	errors := false
-	if len(errs) > 0 {
-		errors = true
-		for _, err := range errs {
-			log.Errorf("error polling for new packages: %v", err)
-		}
-	}
+	errors := len(errs) > 0
 	return pkgs, errors
 }
 
