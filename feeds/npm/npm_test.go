@@ -64,12 +64,12 @@ func npmLatestPackagesResponse(w http.ResponseWriter, r *http.Request) {
         <item>
             <title><![CDATA[FooPackage]]></title>
             <dc:creator><![CDATA[FooMan]]></dc:creator>
-            <pubDate>Mon, 22 Mar 2021 13:07:29 GMT</pubDate>
+            <pubDate>Mon, 22 Mar 2021 13:45:16 GMT</pubDate>
         </item>
         <item>
             <title><![CDATA[BarPackage]]></title>
             <dc:creator><![CDATA[BarMan]]></dc:creator>
-            <pubDate>Mon, 22 Mar 2021 13:45:16 GMT</pubDate>
+            <pubDate>Mon, 22 Mar 2021 13:07:29 GMT</pubDate>
         </item>
     </channel>
 </rss>
