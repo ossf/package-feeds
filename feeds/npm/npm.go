@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/ossf/package-feeds/events"
@@ -108,18 +109,41 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 
 func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}
+	packageChannel := make(chan *feeds.Package)
+	errs := make(chan error)
+
 	packages, err := fetchPackages()
 	if err != nil {
 		return pkgs, err
 	}
+
 	for _, pkg := range packages {
-		v, err := fetchVersionInformation(pkg.Title)
-		if err != nil {
+		go func(pkg *Package) {
+			v, err := fetchVersionInformation(pkg.Title)
+			if err != nil {
+				errs <- err
+				return
+			}
+			feedPkg := feeds.NewPackage(pkg.CreatedDate.Time, pkg.Title, v, FeedName)
+			packageChannel <- feedPkg
+		}(pkg)
+	}
+
+	for i := 0; i < len(packages); i++ {
+		select {
+		case pkg := <-packageChannel:
+			pkgs = append(pkgs, pkg)
+		case err := <-errs:
 			return pkgs, fmt.Errorf("error in fetching version information: %w", err)
 		}
-		pkg := feeds.NewPackage(pkg.CreatedDate.Time, pkg.Title, v, FeedName)
-		pkgs = append(pkgs, pkg)
 	}
+
+	// Ensure packages are sorted by CreatedDate in order of most recent, as goroutine
+	// concurrency isn't deterministic.
+	sort.SliceStable(pkgs, func(i, j int) bool {
+		return pkgs[j].CreatedDate.Before(pkgs[i].CreatedDate)
+	})
+
 	feed.lossyFeedAlerter.ProcessPackages(FeedName, pkgs)
 
 	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
