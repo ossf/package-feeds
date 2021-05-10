@@ -3,7 +3,9 @@ package npm
 import (
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"sort"
 	"time"
@@ -18,49 +20,30 @@ const (
 	rssPath  = "/-/rss"
 )
 
-var httpClient = &http.Client{
-	Timeout: 10 * time.Second,
-}
+var (
+	httpClient = &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	errJSON = errors.New("error unmarshaling json response internally")
+)
 
 type Response struct {
-	Packages []*Package `xml:"channel>item"`
+	PackageEvents []PackageEvent `xml:"channel>item"`
 }
 
 type Package struct {
-	Title       string      `xml:"title"`
-	CreatedDate rfc1123Time `xml:"pubDate"`
-	Link        string      `xml:"link"`
+	Title       string
+	CreatedDate time.Time
 	Version     string
+	Unpublished bool
 }
 
-type PackageVersion struct {
-	ID       string `json:"_id"`
-	Rev      string `json:"_rev"`
-	Name     string `json:"name"`
-	DistTags struct {
-		Latest string `json:"latest"`
-	} `json:"dist-tags"`
+type PackageEvent struct {
+	Title string `xml:"title"`
 }
 
-type rfc1123Time struct {
-	time.Time
-}
-
-func (t *rfc1123Time) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	var marshaledTime string
-	err := d.DecodeElement(&marshaledTime, &start)
-	if err != nil {
-		return err
-	}
-	decodedTime, err := time.Parse(time.RFC1123, marshaledTime)
-	if err != nil {
-		return err
-	}
-	*t = rfc1123Time{decodedTime}
-	return nil
-}
-
-func fetchPackages(baseURL string) ([]*Package, error) {
+// Returns a slice of PackageEvent{} structs.
+func fetchPackageEvents(baseURL string) ([]PackageEvent, error) {
 	pkgURL, err := utils.URLPathJoin(baseURL, rssPath)
 	if err != nil {
 		return nil, err
@@ -76,26 +59,76 @@ func fetchPackages(baseURL string) ([]*Package, error) {
 	if err != nil {
 		return nil, err
 	}
-	return rssResponse.Packages, nil
+	return rssResponse.PackageEvents, nil
 }
 
-// Gets the package version from the NPM.
-func fetchVersionInformation(baseURL, packageName string) (string, error) {
-	versionURL, err := utils.URLPathJoin(baseURL, packageName)
+// Gets the package version & corresponding created date from NPM. Returns
+// a slice of {}Package.
+func fetchPackages(baseURL, pkgTitle string, count int) ([]*Package, error) {
+	versionURL, err := utils.URLPathJoin(baseURL, pkgTitle)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	resp, err := httpClient.Get(versionURL)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer resp.Body.Close()
-	v := &PackageVersion{}
-	err = json.NewDecoder(resp.Body).Decode(v)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return v.DistTags.Latest, nil
+	var jsonMap map[string]interface{}
+	err = json.Unmarshal(body, &jsonMap)
+	if err != nil {
+		return nil, fmt.Errorf("%w : %v for package %s", errJSON, err, pkgTitle)
+	}
+
+	// The json string `time` contains versions in date order, oldest to newest.
+	versions, ok := jsonMap["time"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("%w : 'time' not found for package %s ",
+			errJSON, pkgTitle)
+	}
+
+	// If `unpublished` exists in the version map then at a given point in time
+	// the package was 'entirely' removed, the packageEvent(s) received are for package
+	// versions that no longer exist. For a given 24h period no further versions can
+	// be uploaded, with any previous versions never being available again.
+	// https://www.npmjs.com/policies/unpublish
+	_, unPublished := versions["unpublished"]
+
+	if unPublished {
+		unPublishedPackages := []*Package{}
+		for i := 0; i < count; i++ {
+			unPublishedPackages = append(unPublishedPackages,
+				&Package{Title: pkgTitle, Unpublished: true})
+		}
+		return unPublishedPackages, nil
+	}
+
+	// Remove redundant entries in map, we're only interested in actual version pairs.
+	delete(versions, "created")
+	delete(versions, "modified")
+
+	// Create slice of Package{} to allow sorting of a slice, as maps
+	// are unordered.
+	versionSlice := []*Package{}
+	for version, timestamp := range versions {
+		date, err := time.Parse(time.RFC3339, timestamp.(string))
+		if err != nil {
+			return nil, err
+		}
+		versionSlice = append(versionSlice,
+			&Package{Title: pkgTitle, CreatedDate: date, Version: version})
+	}
+
+	// Sort slice of versions into order of most recent.
+	sort.SliceStable(versionSlice, func(i, j int) bool {
+		return versionSlice[j].CreatedDate.Before(versionSlice[i].CreatedDate)
+	})
+
+	return versionSlice[:count], nil
 }
 
 type Feed struct {
@@ -118,30 +151,43 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 
 func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}
-	packageChannel := make(chan *feeds.Package)
+	packageChannel := make(chan *Package)
 	errs := make(chan error)
 
-	packages, err := fetchPackages(feed.baseURL)
+	packageEvents, err := fetchPackageEvents(feed.baseURL)
 	if err != nil {
 		return pkgs, err
 	}
 
-	for _, pkg := range packages {
-		go func(pkg *Package) {
-			v, err := fetchVersionInformation(feed.baseURL, pkg.Title)
+	// Handle the possibility of multiple releases of the same package
+	// within the polled `packages` slice.
+	uniquePackages := make(map[string]int)
+	for _, pkg := range packageEvents {
+		uniquePackages[pkg.Title]++
+	}
+
+	for pkgTitle, count := range uniquePackages {
+		go func(pkgTitle string, count int) {
+			pkgs, err := fetchPackages(feed.baseURL, pkgTitle, count)
 			if err != nil {
 				errs <- err
 				return
 			}
-			feedPkg := feeds.NewPackage(pkg.CreatedDate.Time, pkg.Title, v, FeedName)
-			packageChannel <- feedPkg
-		}(pkg)
+			for _, pkg := range pkgs {
+				packageChannel <- pkg
+			}
+		}(pkgTitle, count)
 	}
 
-	for i := 0; i < len(packages); i++ {
+	for i := 0; i < len(packageEvents); i++ {
 		select {
 		case pkg := <-packageChannel:
-			pkgs = append(pkgs, pkg)
+			// TODO: Add an event for unpublished package?
+			if !pkg.Unpublished {
+				feedPkg := feeds.NewPackage(pkg.CreatedDate, pkg.Title,
+					pkg.Version, FeedName)
+				pkgs = append(pkgs, feedPkg)
+			}
 		case err := <-errs:
 			return pkgs, fmt.Errorf("error in fetching version information: %w", err)
 		}
