@@ -3,6 +3,7 @@ package feeds
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 )
 
@@ -71,4 +72,11 @@ func ApplyCutoff(pkgs []*Package, cutoff time.Time) []*Package {
 
 func (err UnsupportedOptionError) Error() string {
 	return fmt.Sprintf("unsupported option `%v` supplied to %v feed", err.Option, err.Feed)
+}
+
+func SortPackages(pkgs []*Package) {
+	// Ensure packages are sorted by CreatedDate in order of most recent
+	sort.SliceStable(pkgs, func(i, j int) bool {
+		return pkgs[j].CreatedDate.Before(pkgs[i].CreatedDate)
+	})
 }
