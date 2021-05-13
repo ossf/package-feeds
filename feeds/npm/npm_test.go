@@ -1,14 +1,13 @@
 package npm
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/ossf/package-feeds/events"
 	"github.com/ossf/package-feeds/feeds"
-	"github.com/ossf/package-feeds/testutils"
+	testutils "github.com/ossf/package-feeds/utils/test"
 )
 
 func TestNpmLatest(t *testing.T) {
@@ -54,6 +53,28 @@ func TestNpmLatest(t *testing.T) {
 	}
 }
 
+func TestNpmNonUtf8Response(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]testutils.HTTPHandlerFunc{
+		rssPath: nonUtf8Response,
+	}
+	srv := testutils.HTTPServerMock(handlers)
+
+	pkgs, err := fetchPackages(srv.URL)
+	if err != nil {
+		t.Fatalf("Failed to fetch packages: %v", err)
+	}
+
+	if len(pkgs) != 1 {
+		t.Fatalf("Expected a single package but found %v packages", len(pkgs))
+	}
+
+	if pkgs[0].Title != "BarPackage" {
+		t.Errorf("Package name '%v' does not match expected '%v'", pkgs[0].Title, "BarPackage")
+	}
+}
+
 func npmLatestPackagesResponse(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write([]byte(`
 <?xml version="1.0" encoding="UTF-8"?><rss>
@@ -75,7 +96,7 @@ func npmLatestPackagesResponse(w http.ResponseWriter, r *http.Request) {
 </rss>
 `))
 	if err != nil {
-		fmt.Println("Unexpected error during mock http server write: %w", err)
+		http.Error(w, testutils.UnexpectedWriteError(err), http.StatusInternalServerError)
 	}
 }
 
@@ -89,7 +110,7 @@ func fooVersionInfoResponse(w http.ResponseWriter, r *http.Request) {
 }
 `))
 	if err != nil {
-		fmt.Println("Unexpected error during mock http server write: %w", err)
+		http.Error(w, testutils.UnexpectedWriteError(err), http.StatusInternalServerError)
 	}
 }
 
@@ -103,6 +124,26 @@ func barVersionInfoResponse(w http.ResponseWriter, r *http.Request) {
 }
 `))
 	if err != nil {
-		fmt.Println("Unexpected error during mock http server write: %w", err)
+		http.Error(w, testutils.UnexpectedWriteError(err), http.StatusInternalServerError)
+	}
+}
+
+func nonUtf8Response(w http.ResponseWriter, r *http.Request) {
+	_, err := w.Write([]byte(`
+<?xml version="1.0" encoding="UTF-8"?><rss>
+    <channel>
+        <title><![CDATA[npm recent updates]]></title>
+        <lastBuildDate>Mon, 22 Mar 2021 13:45:33 GMT</lastBuildDate>
+        <pubDate>Mon, 22 Mar 2021 13:45:33 GMT</pubDate>
+        <item>
+            <title><![CDATA[BarPackage���]]></title>
+            <dc:creator><![CDATA[Bar���Man]]></dc:creator>
+            <pubDate>Mon, 22 Mar 2021 13:07:29 GMT</pubDate>
+        </item>
+    </channel>
+</rss>
+`))
+	if err != nil {
+		http.Error(w, testutils.UnexpectedWriteError(err), http.StatusInternalServerError)
 	}
 }

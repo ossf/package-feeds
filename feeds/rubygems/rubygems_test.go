@@ -7,7 +7,7 @@ import (
 
 	"github.com/ossf/package-feeds/events"
 	"github.com/ossf/package-feeds/feeds"
-	"github.com/ossf/package-feeds/testutils"
+	testutils "github.com/ossf/package-feeds/utils/test"
 )
 
 func TestRubyLatest(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/ossf/package-feeds/feeds"
-	"github.com/ossf/package-feeds/testutils"
+	testutils "github.com/ossf/package-feeds/utils/test"
 )
 
 func TestFetch(t *testing.T) {
