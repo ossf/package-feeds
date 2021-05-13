@@ -12,13 +12,11 @@ import (
 )
 
 const (
-	FeedName = "goproxy"
+	FeedName  = "goproxy"
+	indexPath = "/index"
 )
 
-var (
-	baseURL    = "https://index.golang.org/index"
-	httpClient = &http.Client{Timeout: 10 * time.Second}
-)
+var httpClient = &http.Client{Timeout: 10 * time.Second}
 
 type PackageJSON struct {
 	Path      string `json:"Path"`
@@ -32,11 +30,11 @@ type Package struct {
 	Version      string
 }
 
-func fetchPackages(since time.Time) ([]Package, error) {
+func fetchPackages(baseURL string, since time.Time) ([]Package, error) {
 	var packages []Package
 	params := url.Values{}
 	params.Add("since", since.Format(time.RFC3339))
-	requestURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+	requestURL := fmt.Sprintf("%s/%s?%s", baseURL, indexPath, params.Encode())
 	resp, err := httpClient.Get(requestURL)
 	if err != nil {
 		return nil, err
@@ -68,7 +66,9 @@ func fetchPackages(since time.Time) ([]Package, error) {
 	return packages, nil
 }
 
-type Feed struct{}
+type Feed struct {
+	baseURL string
+}
 
 func New(feedOptions feeds.FeedOptions) (*Feed, error) {
 	if feedOptions.Packages != nil {
@@ -77,12 +77,14 @@ func New(feedOptions feeds.FeedOptions) (*Feed, error) {
 			Option: "packages",
 		}
 	}
-	return &Feed{}, nil
+	return &Feed{
+		baseURL: "https://index.golang.org/",
+	}, nil
 }
 
 func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}
-	packages, err := fetchPackages(cutoff)
+	packages, err := fetchPackages(feed.baseURL, cutoff)
 	if err != nil {
 		return pkgs, fmt.Errorf("error fetching packages: %w", err)
 	}

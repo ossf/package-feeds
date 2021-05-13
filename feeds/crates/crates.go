@@ -2,6 +2,7 @@ package crates
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -10,15 +11,13 @@ import (
 )
 
 const (
-	FeedName = "crates"
+	FeedName     = "crates"
+	activityPath = "/api/v1/summary"
 )
 
-var (
-	baseURL    = "https://crates.io/api/v1/summary"
-	httpClient = &http.Client{
-		Timeout: 10 * time.Second,
-	}
-)
+var httpClient = &http.Client{
+	Timeout: 10 * time.Second,
+}
 
 type crates struct {
 	JustUpdated []*Package `json:"just_updated"`
@@ -35,8 +34,8 @@ type Package struct {
 }
 
 // Gets crates.io packages.
-func fetchPackages() ([]*Package, error) {
-	resp, err := httpClient.Get(baseURL)
+func fetchPackages(baseURL string) ([]*Package, error) {
+	resp, err := httpClient.Get(fmt.Sprintf("%s%s", baseURL, activityPath))
 	if err != nil {
 		return nil, err
 	}
@@ -53,6 +52,7 @@ func fetchPackages() ([]*Package, error) {
 
 type Feed struct {
 	lossyFeedAlerter *feeds.LossyFeedAlerter
+	baseURL          string
 }
 
 func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, error) {
@@ -64,12 +64,13 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 	}
 	return &Feed{
 		lossyFeedAlerter: feeds.NewLossyFeedAlerter(eventHandler),
+		baseURL:          "https://crates.io/api/v1/summary",
 	}, nil
 }
 
 func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}
-	packages, err := fetchPackages()
+	packages, err := fetchPackages(feed.baseURL)
 	if err != nil {
 		return pkgs, err
 	}

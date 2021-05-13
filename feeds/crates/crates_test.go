@@ -14,14 +14,14 @@ func TestCratesLatest(t *testing.T) {
 	t.Parallel()
 
 	handlers := map[string]testutils.HTTPHandlerFunc{
-		"/api/v1/summary": cratesSummaryResponse,
+		activityPath: cratesSummaryResponse,
 	}
 	srv := testutils.HTTPServerMock(handlers)
 
-	baseURL = srv.URL + "/api/v1/summary"
 	feed, err := New(feeds.FeedOptions{}, events.NewNullHandler())
+	feed.baseURL = srv.URL
 	if err != nil {
-		t.Fatalf("failed to create crates feed: %v", err)
+		t.Fatalf("Failed to create crates feed: %v", err)
 	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)

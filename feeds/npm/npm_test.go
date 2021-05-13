@@ -21,11 +21,11 @@ func TestNpmLatest(t *testing.T) {
 	}
 	srv := testutils.HTTPServerMock(handlers)
 
-	baseURL = srv.URL + "/-/rss/"
-	versionURL = srv.URL + "/"
 	feed, err := New(feeds.FeedOptions{}, events.NewNullHandler())
+	feed.baseURL = srv.URL
+
 	if err != nil {
-		t.Fatalf("failed to create new npm feed: %v", err)
+		t.Fatalf("Failed to create new npm feed: %v", err)
 	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)

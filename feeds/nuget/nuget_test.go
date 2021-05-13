@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ossf/package-feeds/feeds"
 	"github.com/ossf/package-feeds/testutils"
 )
 
@@ -16,7 +17,7 @@ func TestCanParseFeed(t *testing.T) {
 	t.Parallel()
 	var err error
 	handlers := map[string]testutils.HTTPHandlerFunc{
-		"/v3/index.json":          indexMock,
+		indexPath:                 indexMock,
 		"/v3/catalog0/index.json": catalogMock,
 		"/v3/catalog0/page1.json": catalogPageMock,
 		"/v3/catalog0/data/somecatalog/new.expected.package.0.0.1.json": packageDetailMock,
@@ -26,12 +27,16 @@ func TestCanParseFeed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error during test url parsing: %v", err)
 	}
-	feedURL, err = makeTestURL("v3/index.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	sut := Feed{}
+	sut, err := New(feeds.FeedOptions{})
+	if err != nil {
+		t.Fatalf("Failed to create nuget feed: %v", err)
+	}
+	sut.baseURL = srv.URL
+
 	cutoff := time.Now().Add(-5 * time.Minute)
 
 	results, err := sut.Latest(cutoff)

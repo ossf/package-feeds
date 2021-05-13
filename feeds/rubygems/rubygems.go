@@ -11,15 +11,13 @@ import (
 )
 
 const (
-	FeedName = "rubygems"
+	FeedName     = "rubygems"
+	activityPath = "/api/v1/activity"
 )
 
-var (
-	baseURL    = "https://rubygems.org/api/v1/activity"
-	httpClient = &http.Client{
-		Timeout: 10 * time.Second,
-	}
-)
+var httpClient = &http.Client{
+	Timeout: 10 * time.Second,
+}
 
 type Package struct {
 	Name        string    `json:"name"`
@@ -40,6 +38,7 @@ func fetchPackages(url string) ([]*Package, error) {
 
 type Feed struct {
 	lossyFeedAlerter *feeds.LossyFeedAlerter
+	baseURL          string
 }
 
 func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, error) {
@@ -51,20 +50,24 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 	}
 	return &Feed{
 		lossyFeedAlerter: feeds.NewLossyFeedAlerter(eventHandler),
+		baseURL:          "https://rubygems.org",
 	}, nil
 }
 
 func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}
 	packages := make(map[string]*Package)
-	newPackages, err := fetchPackages(fmt.Sprintf("%s/%s", baseURL, "latest.json"))
+
+	newPackagesURL := fmt.Sprintf("%s/%s/%s", feed.baseURL, activityPath, "latest.json")
+	newPackages, err := fetchPackages(newPackagesURL)
 	if err != nil {
 		return pkgs, err
 	}
 	for _, pkg := range newPackages {
 		packages[pkg.Name] = pkg
 	}
-	updatedPackages, err := fetchPackages(fmt.Sprintf("%s/%s", baseURL, "just_updated.json"))
+	updatedPackagesURL := fmt.Sprintf("%s/%s/%s", feed.baseURL, activityPath, "just_updated.json")
+	updatedPackages, err := fetchPackages(updatedPackagesURL)
 	if err != nil {
 		return pkgs, err
 	}

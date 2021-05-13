@@ -12,10 +12,9 @@ import (
 
 const FeedName = "packagist"
 
-var (
-	updateHost  = "https://packagist.org"
-	versionHost = "https://repo.packagist.org"
-)
+var httpClient = &http.Client{
+	Timeout: 10 * time.Second,
+}
 
 type response struct {
 	Actions   []actions `json:"actions"`
@@ -28,7 +27,10 @@ type actions struct {
 	Time    int64  `json:"time"`
 }
 
-type Feed struct{}
+type Feed struct {
+	updateHost  string
+	versionHost string
+}
 
 func New(feedOptions feeds.FeedOptions) (*Feed, error) {
 	if feedOptions.Packages != nil {
@@ -37,13 +39,13 @@ func New(feedOptions feeds.FeedOptions) (*Feed, error) {
 			Option: "packages",
 		}
 	}
-	return &Feed{}, nil
+	return &Feed{
+		updateHost:  "https://packagist.org",
+		versionHost: "https://repo.packagist.org",
+	}, nil
 }
 
-func fetchPackages(since time.Time) ([]actions, error) {
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
+func fetchPackages(updateHost string, since time.Time) ([]actions, error) {
 	request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/metadata/changes.json", updateHost), nil)
 	if err != nil {
 		return nil, err
@@ -52,7 +54,7 @@ func fetchPackages(since time.Time) ([]actions, error) {
 	sinceStr := strconv.FormatInt(since.Unix()*10000, 10)
 	values.Add("since", sinceStr)
 	request.URL.RawQuery = values.Encode()
-	resp, err := client.Do(request)
+	resp, err := httpClient.Do(request)
 	if err != nil {
 		return nil, err
 	}
@@ -67,11 +69,8 @@ func fetchPackages(since time.Time) ([]actions, error) {
 	return apiResponse.Actions, nil
 }
 
-func fetchVersionInformation(action actions) ([]*feeds.Package, error) {
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-	resp, err := client.Get(fmt.Sprintf("%s/p2/%s.json", versionHost, action.Package))
+func fetchVersionInformation(versionHost string, action actions) ([]*feeds.Package, error) {
+	resp, err := httpClient.Get(fmt.Sprintf("%s/p2/%s.json", versionHost, action.Package))
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +99,7 @@ func fetchVersionInformation(action actions) ([]*feeds.Package, error) {
 // Latest returns all package updates of packagist packages since cutoff.
 func (f Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}
-	packages, err := fetchPackages(cutoff)
+	packages, err := fetchPackages(f.updateHost, cutoff)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +110,7 @@ func (f Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 		if pkg.Type == "delete" {
 			continue
 		}
-		updates, err := fetchVersionInformation(pkg)
+		updates, err := fetchVersionInformation(f.versionHost, pkg)
 		if err != nil {
 			return nil, fmt.Errorf("error in fetching version information: %w", err)
 		}

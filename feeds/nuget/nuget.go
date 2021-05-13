@@ -13,10 +13,10 @@ import (
 const (
 	FeedName           = "nuget"
 	catalogServiceType = "Catalog/3.0.0"
+	indexPath          = "/v3/index.json"
 )
 
 var (
-	feedURL    = "https://api.nuget.org/v3/index.json"
 	httpClient = http.Client{
 		Timeout: 10 * time.Second,
 	}
@@ -54,9 +54,10 @@ type nugetPackageDetails struct {
 	Created   time.Time `json:"published"`
 }
 
-func fetchCatalogService() (*nugetService, error) {
+func fetchCatalogService(baseURL string) (*nugetService, error) {
 	var err error
-	resp, err := httpClient.Get(feedURL)
+	catalogServiceURL := fmt.Sprintf("%s/%s", baseURL, indexPath)
+	resp, err := httpClient.Get(catalogServiceURL)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +76,7 @@ func fetchCatalogService() (*nugetService, error) {
 		}
 	}
 	return nil, fmt.Errorf("%w : could not locate catalog service for nuget feed %s",
-		errCatalogService, feedURL)
+		errCatalogService, catalogServiceURL)
 }
 
 func fetchCatalogPages(catalogURL string) ([]*catalogPage, error) {
@@ -129,7 +130,9 @@ func fetchPackageInfo(url string) (*nugetPackageDetails, error) {
 	return packageDetail, nil
 }
 
-type Feed struct{}
+type Feed struct {
+	baseURL string
+}
 
 func New(feedOptions feeds.FeedOptions) (*Feed, error) {
 	if feedOptions.Packages != nil {
@@ -138,7 +141,9 @@ func New(feedOptions feeds.FeedOptions) (*Feed, error) {
 			Option: "packages",
 		}
 	}
-	return &Feed{}, nil
+	return &Feed{
+		baseURL: "https://api.nuget.org/",
+	}, nil
 }
 
 // Latest will parse all creation events for packages in the nuget.org catalog feed
@@ -147,7 +152,7 @@ func New(feedOptions feeds.FeedOptions) (*Feed, error) {
 func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}
 
-	catalogService, err := fetchCatalogService()
+	catalogService, err := fetchCatalogService(feed.baseURL)
 	if err != nil {
 		return nil, err
 	}
