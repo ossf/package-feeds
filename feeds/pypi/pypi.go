@@ -10,6 +10,7 @@ import (
 
 	"github.com/ossf/package-feeds/events"
 	"github.com/ossf/package-feeds/feeds"
+	"github.com/ossf/package-feeds/utils"
 )
 
 const (
@@ -78,7 +79,8 @@ func fetchPackages(baseURL string) ([]*Package, error) {
 	}
 	defer resp.Body.Close()
 	rssResponse := &Response{}
-	err = xml.NewDecoder(resp.Body).Decode(rssResponse)
+	reader := utils.NewUTF8OnlyReader(resp.Body)
+	err = xml.NewDecoder(reader).Decode(rssResponse)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +100,8 @@ func fetchCriticalPackages(baseURL string, packageList []string) ([]*Package, er
 			}
 			defer resp.Body.Close()
 			rssResponse := &Response{}
-			err = xml.NewDecoder(resp.Body).Decode(rssResponse)
+			reader := utils.NewUTF8OnlyReader(resp.Body)
+			err = xml.NewDecoder(reader).Decode(rssResponse)
 			if err != nil {
 				errChannel <- err
 				return

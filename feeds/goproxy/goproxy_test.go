@@ -1,13 +1,12 @@
 package goproxy
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/ossf/package-feeds/feeds"
-	"github.com/ossf/package-feeds/testutils"
+	testutils "github.com/ossf/package-feeds/utils/test"
 )
 
 func TestGoProxyLatest(t *testing.T) {
@@ -55,6 +54,6 @@ func goproxyPackageResponse(w http.ResponseWriter, r *http.Request) {
 {"Path": "golang.org/x/bar","Version": "v0.4.0","Timestamp": "2019-04-10T20:30:02.04035Z"}
 `))
 	if err != nil {
-		fmt.Println("Unexpected error during mock http server write: %w", err)
+		http.Error(w, testutils.UnexpectedWriteError(err), http.StatusInternalServerError)
 	}
 }
