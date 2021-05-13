@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ossf/package-feeds/feeds"
 	"github.com/ossf/package-feeds/testutils"
 )
 
@@ -13,12 +14,15 @@ func TestGoProxyLatest(t *testing.T) {
 	t.Parallel()
 
 	handlers := map[string]testutils.HTTPHandlerFunc{
-		"/index": goproxyPackageResponse,
+		indexPath: goproxyPackageResponse,
 	}
 	srv := testutils.HTTPServerMock(handlers)
 
-	baseURL = srv.URL + "/index"
-	feed := Feed{}
+	feed, err := New(feeds.FeedOptions{})
+	if err != nil {
+		t.Fatalf("Failed to create goproxy feed: %v", err)
+	}
+	feed.baseURL = srv.URL
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 	pkgs, err := feed.Latest(cutoff)

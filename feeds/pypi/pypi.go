@@ -13,13 +13,13 @@ import (
 )
 
 const (
-	FeedName = "pypi"
+	FeedName         = "pypi"
+	updatesPath      = "/rss/updates.xml"
+	packageURLFormat = "%s/rss/project/%s/releases.xml"
 )
 
 var (
-	baseURL          = "https://pypi.org/rss/updates.xml"
-	packageURLFormat = "https://pypi.org/rss/project/%s/releases.xml"
-	httpClient       = &http.Client{
+	httpClient = &http.Client{
 		Timeout: 10 * time.Second,
 	}
 	errInvalidLinkForPackage = errors.New("invalid link provided by pypi API")
@@ -71,8 +71,8 @@ func (t *rfc1123Time) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
 	return nil
 }
 
-func fetchPackages() ([]*Package, error) {
-	resp, err := httpClient.Get(baseURL)
+func fetchPackages(baseURL string) ([]*Package, error) {
+	resp, err := httpClient.Get(fmt.Sprintf("%s/%s", baseURL, updatesPath))
 	if err != nil {
 		return nil, err
 	}
@@ -85,13 +85,13 @@ func fetchPackages() ([]*Package, error) {
 	return rssResponse.Packages, nil
 }
 
-func fetchCriticalPackages(packageList []string) ([]*Package, error) {
+func fetchCriticalPackages(baseURL string, packageList []string) ([]*Package, error) {
 	responseChannel := make(chan *Response)
 	errChannel := make(chan error)
 
 	for _, pkgName := range packageList {
 		go func(pkgName string) {
-			resp, err := httpClient.Get(fmt.Sprintf(packageURLFormat, pkgName))
+			resp, err := httpClient.Get(fmt.Sprintf(packageURLFormat, baseURL, pkgName))
 			if err != nil {
 				errChannel <- err
 				return
@@ -124,12 +124,14 @@ type Feed struct {
 	packages *[]string
 
 	lossyFeedAlerter *feeds.LossyFeedAlerter
+	baseURL          string
 }
 
 func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, error) {
 	return &Feed{
 		packages:         feedOptions.Packages,
 		lossyFeedAlerter: feeds.NewLossyFeedAlerter(eventHandler),
+		baseURL:          "https://pypi.org/",
 	}, nil
 }
 
@@ -140,10 +142,10 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 
 	if feed.packages == nil {
 		// Firehose fetch all packages.
-		pypiPackages, err = fetchPackages()
+		pypiPackages, err = fetchPackages(feed.baseURL)
 	} else {
 		// Fetch specific packages individually from configured packages list.
-		pypiPackages, err = fetchCriticalPackages(*feed.packages)
+		pypiPackages, err = fetchCriticalPackages(feed.baseURL, *feed.packages)
 	}
 
 	if err != nil {

@@ -14,15 +14,15 @@ func TestPypiLatest(t *testing.T) {
 	t.Parallel()
 
 	handlers := map[string]testutils.HTTPHandlerFunc{
-		"/rss/updates.xml": updatesXMLHandle,
+		updatesPath: updatesXMLHandle,
 	}
 	srv := testutils.HTTPServerMock(handlers)
 
-	baseURL = srv.URL + "/rss/updates.xml"
 	feed, err := New(feeds.FeedOptions{}, events.NewNullHandler())
 	if err != nil {
-		t.Fatalf("failed to create new pypi feed: %v", err)
+		t.Fatalf("Failed to create new pypi feed: %v", err)
 	}
+	feed.baseURL = srv.URL
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 	pkgs, err := feed.Latest(cutoff)
@@ -63,18 +63,18 @@ func TestPypiCriticalLatest(t *testing.T) {
 	}
 	srv := testutils.HTTPServerMock(handlers)
 
-	packageURLFormat = srv.URL + "/rss/project/%s/releases.xml"
 	feed, err := New(feeds.FeedOptions{
 		Packages: &packages,
 	}, events.NewNullHandler())
 	if err != nil {
-		t.Fatalf("Unexpected err: %v", err)
+		t.Fatalf("Failed to create pypi feed: %v", err)
 	}
+	feed.baseURL = srv.URL
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 	pkgs, err := feed.Latest(cutoff)
 	if err != nil {
-		t.Fatalf("failed to call Latest() with err: %v", err)
+		t.Fatalf("Failed to call Latest() with err: %v", err)
 	}
 
 	const expectedNumPackages = 4
@@ -90,16 +90,16 @@ func TestPypiCriticalLatest(t *testing.T) {
 	}
 
 	if _, ok := pkgMap["foopy"]["2.1"]; !ok {
-		t.Fatalf("missing foopy 2.1")
+		t.Fatalf("Missing foopy 2.1")
 	}
 	if _, ok := pkgMap["foopy"]["2.0"]; !ok {
-		t.Fatalf("missing foopy 2.0")
+		t.Fatalf("Missing foopy 2.0")
 	}
 	if _, ok := pkgMap["barpy"]["1.1"]; !ok {
-		t.Fatalf("missing barpy 1.1")
+		t.Fatalf("Missing barpy 1.1")
 	}
 	if _, ok := pkgMap["barpy"]["1.0"]; !ok {
-		t.Fatalf("missing barpy 1.0")
+		t.Fatalf("Missing barpy 1.0")
 	}
 }
 

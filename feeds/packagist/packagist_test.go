@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ossf/package-feeds/feeds"
 	"github.com/ossf/package-feeds/testutils"
 )
 
@@ -18,9 +19,13 @@ func TestFetch(t *testing.T) {
 	srv := testutils.HTTPServerMock(handlers)
 
 	defer srv.Close()
-	updateHost = srv.URL
-	versionHost = srv.URL
-	feed := Feed{}
+	feed, err := New(feeds.FeedOptions{})
+	if err != nil {
+		t.Fatalf("Failed to create packagist feed: %v", err)
+	}
+	feed.updateHost = srv.URL
+	feed.versionHost = srv.URL
+
 	cutoff := time.Unix(1614513658, 0)
 	latest, err := feed.Latest(cutoff)
 	if err != nil {

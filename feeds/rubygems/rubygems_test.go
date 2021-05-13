@@ -19,8 +19,8 @@ func TestRubyLatest(t *testing.T) {
 	}
 	srv := testutils.HTTPServerMock(handlers)
 
-	baseURL = srv.URL + "/api/v1/activity"
 	feed, err := New(feeds.FeedOptions{}, events.NewNullHandler())
+	feed.baseURL = srv.URL
 	if err != nil {
 		t.Fatalf("failed to create new ruby feed: %v", err)
 	}

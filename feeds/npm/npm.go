@@ -14,15 +14,12 @@ import (
 
 const (
 	FeedName = "npm"
+	rssPath  = "/-/rss"
 )
 
-var (
-	baseURL    = "https://registry.npmjs.org/-/rss"
-	versionURL = "https://registry.npmjs.org/"
-	httpClient = &http.Client{
-		Timeout: 10 * time.Second,
-	}
-)
+var httpClient = &http.Client{
+	Timeout: 10 * time.Second,
+}
 
 type Response struct {
 	Packages []*Package `xml:"channel>item"`
@@ -62,8 +59,8 @@ func (t *rfc1123Time) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
 	return nil
 }
 
-func fetchPackages() ([]*Package, error) {
-	resp, err := httpClient.Get(baseURL)
+func fetchPackages(baseURL string) ([]*Package, error) {
+	resp, err := httpClient.Get(fmt.Sprintf("%s/%s", baseURL, rssPath))
 	if err != nil {
 		return nil, err
 	}
@@ -77,8 +74,8 @@ func fetchPackages() ([]*Package, error) {
 }
 
 // Gets the package version from the NPM.
-func fetchVersionInformation(packageName string) (string, error) {
-	resp, err := httpClient.Get(fmt.Sprintf("%s/%s", versionURL, packageName))
+func fetchVersionInformation(baseURL, packageName string) (string, error) {
+	resp, err := httpClient.Get(fmt.Sprintf("%s/%s", baseURL, packageName))
 	if err != nil {
 		return "", err
 	}
@@ -93,6 +90,7 @@ func fetchVersionInformation(packageName string) (string, error) {
 
 type Feed struct {
 	lossyFeedAlerter *feeds.LossyFeedAlerter
+	baseURL          string
 }
 
 func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, error) {
@@ -104,6 +102,7 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 	}
 	return &Feed{
 		lossyFeedAlerter: feeds.NewLossyFeedAlerter(eventHandler),
+		baseURL:          "https://registry.npmjs.org/",
 	}, nil
 }
 
@@ -112,14 +111,14 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	packageChannel := make(chan *feeds.Package)
 	errs := make(chan error)
 
-	packages, err := fetchPackages()
+	packages, err := fetchPackages(feed.baseURL)
 	if err != nil {
 		return pkgs, err
 	}
 
 	for _, pkg := range packages {
 		go func(pkg *Package) {
-			v, err := fetchVersionInformation(pkg.Title)
+			v, err := fetchVersionInformation(feed.baseURL, pkg.Title)
 			if err != nil {
 				errs <- err
 				return
