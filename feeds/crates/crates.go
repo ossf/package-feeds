@@ -2,6 +2,7 @@ package crates
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -43,8 +44,13 @@ func fetchPackages(baseURL string) ([]*Package, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	defer resp.Body.Close()
+
+	err = utils.CheckResponseStatus(resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch crates package data: %w", err)
+	}
+
 	v := &crates{}
 	err = json.NewDecoder(resp.Body).Decode(v)
 	if err != nil {

@@ -82,6 +82,12 @@ func fetchPackages(baseURL string) ([]*Package, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	err = utils.CheckResponseStatus(resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch pypi package data: %w", err)
+	}
+
 	rssResponse := &Response{}
 	reader := utils.NewUTF8OnlyReader(resp.Body)
 	err = xml.NewDecoder(reader).Decode(rssResponse)
@@ -109,6 +115,13 @@ func fetchCriticalPackages(baseURL string, packageList []string) ([]*Package, er
 				return
 			}
 			defer resp.Body.Close()
+
+			err = utils.CheckResponseStatus(resp)
+			if err != nil {
+				errChannel <- fmt.Errorf("failed to fetch pypi package data: %w", err)
+				return
+			}
+
 			rssResponse := &Response{}
 			reader := utils.NewUTF8OnlyReader(resp.Body)
 			err = xml.NewDecoder(reader).Decode(rssResponse)

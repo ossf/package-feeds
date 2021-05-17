@@ -21,3 +21,7 @@ func HTTPServerMock(handlerFuncs map[string]HTTPHandlerFunc) *httptest.Server {
 func UnexpectedWriteError(err error) string {
 	return fmt.Sprintf("Unexpected error during mock http server write: %s", err.Error())
 }
+
+func NotFoundHandlerFunc(w http.ResponseWriter, r *http.Request) {
+	http.NotFound(w, r)
+}

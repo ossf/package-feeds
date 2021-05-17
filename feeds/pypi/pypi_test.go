@@ -1,12 +1,14 @@
 package pypi
 
 import (
+	"errors"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/ossf/package-feeds/events"
 	"github.com/ossf/package-feeds/feeds"
+	"github.com/ossf/package-feeds/utils"
 	testutils "github.com/ossf/package-feeds/utils/test"
 )
 
@@ -100,6 +102,37 @@ func TestPypiCriticalLatest(t *testing.T) {
 	}
 	if _, ok := pkgMap["barpy"]["1.0"]; !ok {
 		t.Fatalf("Missing barpy 1.0")
+	}
+}
+
+func TestPypiNotFound(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]testutils.HTTPHandlerFunc{
+		"/rss/project/foopy/releases.xml": testutils.NotFoundHandlerFunc,
+		"/rss/project/barpy/releases.xml": testutils.NotFoundHandlerFunc,
+	}
+	packages := []string{
+		"foopy",
+		"barpy",
+	}
+	srv := testutils.HTTPServerMock(handlers)
+
+	feed, err := New(feeds.FeedOptions{
+		Packages: &packages,
+	}, events.NewNullHandler())
+	if err != nil {
+		t.Fatalf("Failed to create pypi feed: %v", err)
+	}
+	feed.baseURL = srv.URL
+
+	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+	_, err = feed.Latest(cutoff)
+	if err == nil {
+		t.Fatalf("feed.Latest() was successful when an error was expected")
+	}
+	if !errors.Is(err, utils.ErrUnsuccessfulRequest) {
+		t.Fatalf("feed.Latest() returned an error which did not match the expected error")
 	}
 }
 

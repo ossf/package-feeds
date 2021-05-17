@@ -1,12 +1,14 @@
 package rubygems
 
 import (
+	"errors"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/ossf/package-feeds/events"
 	"github.com/ossf/package-feeds/feeds"
+	"github.com/ossf/package-feeds/utils"
 	testutils "github.com/ossf/package-feeds/utils/test"
 )
 
@@ -57,6 +59,31 @@ func TestRubyLatest(t *testing.T) {
 		if p.Type != FeedName {
 			t.Errorf("Feed type not set correctly in ruby package following Latest()")
 		}
+	}
+}
+
+func TestRubyGemsNotFound(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]testutils.HTTPHandlerFunc{
+		"/api/v1/activity/latest.json":       testutils.NotFoundHandlerFunc,
+		"/api/v1/activity/just_updated.json": testutils.NotFoundHandlerFunc,
+	}
+	srv := testutils.HTTPServerMock(handlers)
+
+	feed, err := New(feeds.FeedOptions{}, events.NewNullHandler())
+	feed.baseURL = srv.URL
+	if err != nil {
+		t.Fatalf("failed to create new ruby feed: %v", err)
+	}
+
+	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+	_, err = feed.Latest(cutoff)
+	if err == nil {
+		t.Fatalf("feed.Latest() was successful when an error was expected")
+	}
+	if !errors.Is(err, utils.ErrUnsuccessfulRequest) {
+		t.Fatalf("feed.Latest() returned an error which did not match the expected error")
 	}
 }
 

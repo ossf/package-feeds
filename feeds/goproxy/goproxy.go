@@ -50,6 +50,12 @@ func fetchPackages(baseURL string, since time.Time) ([]Package, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	err = utils.CheckResponseStatus(resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch goproxy package data: %w", err)
+	}
+
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
 		var packageJSON PackageJSON

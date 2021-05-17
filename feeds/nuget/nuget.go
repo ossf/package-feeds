@@ -68,6 +68,11 @@ func fetchCatalogService(baseURL string) (*nugetService, error) {
 
 	defer resp.Body.Close()
 
+	err = utils.CheckResponseStatus(resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch nuget catalog service: %w", err)
+	}
+
 	directory := &serviceIndex{}
 	err = json.NewDecoder(resp.Body).Decode(directory)
 	if err != nil {
@@ -91,6 +96,11 @@ func fetchCatalogPages(catalogURL string) ([]*catalogPage, error) {
 
 	defer resp.Body.Close()
 
+	err = utils.CheckResponseStatus(resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch nuget catalog pages: %w", err)
+	}
+
 	c := &catalog{}
 	err = json.NewDecoder(resp.Body).Decode(c)
 	if err != nil {
@@ -108,6 +118,11 @@ func fetchCatalogPage(url string) ([]*catalogLeaf, error) {
 
 	defer resp.Body.Close()
 
+	err = utils.CheckResponseStatus(resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch nuget catalog page: %w", err)
+	}
+
 	page := &catalogPage{}
 	err = json.NewDecoder(resp.Body).Decode(page)
 	if err != nil {
@@ -124,6 +139,11 @@ func fetchPackageInfo(url string) (*nugetPackageDetails, error) {
 	}
 
 	defer resp.Body.Close()
+
+	err = utils.CheckResponseStatus(resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch nuget package data: %w", err)
+	}
 
 	packageDetail := &nugetPackageDetails{}
 	err = json.NewDecoder(resp.Body).Decode(packageDetail)
