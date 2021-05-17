@@ -61,7 +61,11 @@ func (t *rfc1123Time) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
 }
 
 func fetchPackages(baseURL string) ([]*Package, error) {
-	resp, err := httpClient.Get(fmt.Sprintf("%s/%s", baseURL, rssPath))
+	pkgURL, err := utils.URLPathJoin(baseURL, rssPath)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := httpClient.Get(pkgURL)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +81,11 @@ func fetchPackages(baseURL string) ([]*Package, error) {
 
 // Gets the package version from the NPM.
 func fetchVersionInformation(baseURL, packageName string) (string, error) {
-	resp, err := httpClient.Get(fmt.Sprintf("%s/%s", baseURL, packageName))
+	versionURL, err := utils.URLPathJoin(baseURL, packageName)
+	if err != nil {
+		return "", err
+	}
+	resp, err := httpClient.Get(versionURL)
 	if err != nil {
 		return "", err
 	}

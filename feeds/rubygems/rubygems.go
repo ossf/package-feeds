@@ -2,12 +2,12 @@ package rubygems
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/ossf/package-feeds/events"
 	"github.com/ossf/package-feeds/feeds"
+	"github.com/ossf/package-feeds/utils"
 )
 
 const (
@@ -58,7 +58,10 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}
 	packages := make(map[string]*Package)
 
-	newPackagesURL := fmt.Sprintf("%s/%s/%s", feed.baseURL, activityPath, "latest.json")
+	newPackagesURL, err := utils.URLPathJoin(feed.baseURL, activityPath, "latest.json")
+	if err != nil {
+		return nil, err
+	}
 	newPackages, err := fetchPackages(newPackagesURL)
 	if err != nil {
 		return pkgs, err
@@ -66,7 +69,10 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	for _, pkg := range newPackages {
 		packages[pkg.Name] = pkg
 	}
-	updatedPackagesURL := fmt.Sprintf("%s/%s/%s", feed.baseURL, activityPath, "just_updated.json")
+	updatedPackagesURL, err := utils.URLPathJoin(feed.baseURL, activityPath, "just_updated.json")
+	if err != nil {
+		return nil, err
+	}
 	updatedPackages, err := fetchPackages(updatedPackagesURL)
 	if err != nil {
 		return pkgs, err

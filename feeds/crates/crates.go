@@ -2,12 +2,12 @@ package crates
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/ossf/package-feeds/events"
 	"github.com/ossf/package-feeds/feeds"
+	"github.com/ossf/package-feeds/utils"
 )
 
 const (
@@ -35,7 +35,11 @@ type Package struct {
 
 // Gets crates.io packages.
 func fetchPackages(baseURL string) ([]*Package, error) {
-	resp, err := httpClient.Get(fmt.Sprintf("%s%s", baseURL, activityPath))
+	pkgURL, err := utils.URLPathJoin(baseURL, activityPath)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := httpClient.Get(pkgURL)
 	if err != nil {
 		return nil, err
 	}

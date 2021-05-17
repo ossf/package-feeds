@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ossf/package-feeds/feeds"
+	"github.com/ossf/package-feeds/utils"
 )
 
 const (
@@ -56,7 +57,10 @@ type nugetPackageDetails struct {
 
 func fetchCatalogService(baseURL string) (*nugetService, error) {
 	var err error
-	catalogServiceURL := fmt.Sprintf("%s/%s", baseURL, indexPath)
+	catalogServiceURL, err := utils.URLPathJoin(baseURL, indexPath)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := httpClient.Get(catalogServiceURL)
 	if err != nil {
 		return nil, err

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ossf/package-feeds/feeds"
+	"github.com/ossf/package-feeds/utils"
 )
 
 const (
@@ -32,10 +33,19 @@ type Package struct {
 
 func fetchPackages(baseURL string, since time.Time) ([]Package, error) {
 	var packages []Package
+	indexURL, err := utils.URLPathJoin(baseURL, indexPath)
+	if err != nil {
+		return nil, err
+	}
+	pkgURL, err := url.Parse(indexURL)
+	if err != nil {
+		return nil, err
+	}
 	params := url.Values{}
 	params.Add("since", since.Format(time.RFC3339))
-	requestURL := fmt.Sprintf("%s/%s?%s", baseURL, indexPath, params.Encode())
-	resp, err := httpClient.Get(requestURL)
+	pkgURL.RawQuery = params.Encode()
+
+	resp, err := httpClient.Get(pkgURL.String())
 	if err != nil {
 		return nil, err
 	}
