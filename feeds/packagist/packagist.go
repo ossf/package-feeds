@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ossf/package-feeds/feeds"
+	"github.com/ossf/package-feeds/utils"
 )
 
 const FeedName = "packagist"
@@ -46,7 +47,11 @@ func New(feedOptions feeds.FeedOptions) (*Feed, error) {
 }
 
 func fetchPackages(updateHost string, since time.Time) ([]actions, error) {
-	request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/metadata/changes.json", updateHost), nil)
+	pkgURL, err := utils.URLPathJoin(updateHost, "/metadata/changes.json")
+	if err != nil {
+		return nil, err
+	}
+	request, err := http.NewRequest(http.MethodGet, pkgURL, nil)
 	if err != nil {
 		return nil, err
 	}

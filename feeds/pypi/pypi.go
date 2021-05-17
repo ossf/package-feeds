@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	FeedName         = "pypi"
-	updatesPath      = "/rss/updates.xml"
-	packageURLFormat = "%s/rss/project/%s/releases.xml"
+	FeedName          = "pypi"
+	updatesPath       = "/rss/updates.xml"
+	packagePathFormat = "/rss/project/%s/releases.xml"
 )
 
 var (
@@ -73,7 +73,11 @@ func (t *rfc1123Time) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
 }
 
 func fetchPackages(baseURL string) ([]*Package, error) {
-	resp, err := httpClient.Get(fmt.Sprintf("%s/%s", baseURL, updatesPath))
+	pkgURL, err := utils.URLPathJoin(baseURL, updatesPath)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := httpClient.Get(pkgURL)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +97,13 @@ func fetchCriticalPackages(baseURL string, packageList []string) ([]*Package, er
 
 	for _, pkgName := range packageList {
 		go func(pkgName string) {
-			resp, err := httpClient.Get(fmt.Sprintf(packageURLFormat, baseURL, pkgName))
+			packageDataPath := fmt.Sprintf(packagePathFormat, pkgName)
+			pkgURL, err := utils.URLPathJoin(baseURL, packageDataPath)
+			if err != nil {
+				errChannel <- err
+				return
+			}
+			resp, err := httpClient.Get(pkgURL)
 			if err != nil {
 				errChannel <- err
 				return
