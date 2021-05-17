@@ -1,11 +1,13 @@
 package goproxy
 
 import (
+	"errors"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/ossf/package-feeds/feeds"
+	"github.com/ossf/package-feeds/utils"
 	testutils "github.com/ossf/package-feeds/utils/test"
 )
 
@@ -46,6 +48,30 @@ func TestGoProxyLatest(t *testing.T) {
 		if p.Type != FeedName {
 			t.Errorf("Feed type not set correctly in goproxy package following Latest()")
 		}
+	}
+}
+
+func TestGoproxyNotFound(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]testutils.HTTPHandlerFunc{
+		indexPath: testutils.NotFoundHandlerFunc,
+	}
+	srv := testutils.HTTPServerMock(handlers)
+
+	feed, err := New(feeds.FeedOptions{})
+	if err != nil {
+		t.Fatalf("Failed to create goproxy feed: %v", err)
+	}
+	feed.baseURL = srv.URL
+
+	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+	_, err = feed.Latest(cutoff)
+	if err == nil {
+		t.Fatalf("feed.Latest() was successful when an error was expected")
+	}
+	if !errors.Is(err, utils.ErrUnsuccessfulRequest) {
+		t.Fatalf("feed.Latest() returned an error which did not match the expected error")
 	}
 }
 

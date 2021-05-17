@@ -2,6 +2,7 @@ package rubygems
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -31,6 +32,12 @@ func fetchPackages(url string) ([]*Package, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	err = utils.CheckResponseStatus(resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch rubygems package data: %w", err)
+	}
+
 	response := []*Package{}
 	err = json.NewDecoder(resp.Body).Decode(&response)
 	return response, err

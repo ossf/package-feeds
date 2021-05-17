@@ -53,6 +53,11 @@ func fetchPackageEvents(baseURL string) ([]PackageEvent, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	err = utils.CheckResponseStatus(resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch npm package data: %w", err)
+	}
 	rssResponse := &Response{}
 	reader := utils.NewUTF8OnlyReader(resp.Body)
 	err = xml.NewDecoder(reader).Decode(rssResponse)
@@ -74,6 +79,12 @@ func fetchPackages(baseURL, pkgTitle string, count int) ([]*Package, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	err = utils.CheckResponseStatus(resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch npm package version data: %w", err)
+	}
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err

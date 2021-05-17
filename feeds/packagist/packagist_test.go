@@ -1,11 +1,13 @@
 package packagist
 
 import (
+	"errors"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/ossf/package-feeds/feeds"
+	"github.com/ossf/package-feeds/utils"
 	testutils "github.com/ossf/package-feeds/utils/test"
 )
 
@@ -41,6 +43,33 @@ func TestFetch(t *testing.T) {
 		if pkg.Name == "to-delete/deleted-package" {
 			t.Fatalf("pkg to-delete/deleted-package was deleted and should not be included here")
 		}
+	}
+}
+
+func TestPackagistNotFound(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]testutils.HTTPHandlerFunc{
+		"/p2/":                   testutils.NotFoundHandlerFunc,
+		"/metadata/changes.json": testutils.NotFoundHandlerFunc,
+	}
+	srv := testutils.HTTPServerMock(handlers)
+
+	defer srv.Close()
+	feed, err := New(feeds.FeedOptions{})
+	if err != nil {
+		t.Fatalf("Failed to create packagist feed: %v", err)
+	}
+	feed.updateHost = srv.URL
+	feed.versionHost = srv.URL
+
+	cutoff := time.Unix(1614513658, 0)
+	_, err = feed.Latest(cutoff)
+	if err == nil {
+		t.Fatalf("feed.Latest() was successful when an error was expected")
+	}
+	if !errors.Is(err, utils.ErrUnsuccessfulRequest) {
+		t.Fatalf("feed.Latest() returned an error which did not match the expected error")
 	}
 }
 

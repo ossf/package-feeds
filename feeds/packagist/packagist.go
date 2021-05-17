@@ -65,6 +65,11 @@ func fetchPackages(updateHost string, since time.Time) ([]actions, error) {
 	}
 	defer resp.Body.Close()
 
+	err = utils.CheckResponseStatus(resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch packagist package data: %w", err)
+	}
+
 	apiResponse := &response{}
 	err = json.NewDecoder(resp.Body).Decode(apiResponse)
 	if err != nil {
@@ -80,6 +85,11 @@ func fetchVersionInformation(versionHost string, action actions) ([]*feeds.Packa
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	err = utils.CheckResponseStatus(resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch packagist package version data: %w", err)
+	}
 
 	versionResponse := &packages{}
 	err = json.NewDecoder(resp.Body).Decode(versionResponse)
