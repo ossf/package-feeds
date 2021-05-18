@@ -74,7 +74,7 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 	}
 	return &Feed{
 		lossyFeedAlerter: feeds.NewLossyFeedAlerter(eventHandler),
-		baseURL:          "https://crates.io/api/v1/summary",
+		baseURL:          "https://crates.io",
 	}, nil
 }
 
