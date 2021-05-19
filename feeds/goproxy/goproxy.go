@@ -84,6 +84,7 @@ func fetchPackages(baseURL string, since time.Time) ([]Package, error) {
 
 type Feed struct {
 	baseURL string
+	options feeds.FeedOptions
 }
 
 func New(feedOptions feeds.FeedOptions) (*Feed, error) {
@@ -95,6 +96,7 @@ func New(feedOptions feeds.FeedOptions) (*Feed, error) {
 	}
 	return &Feed{
 		baseURL: "https://index.golang.org/",
+		options: feedOptions,
 	}, nil
 }
 
@@ -102,7 +104,7 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}
 	packages, err := fetchPackages(feed.baseURL, cutoff)
 	if err != nil {
-		return pkgs, fmt.Errorf("error fetching packages: %w", err)
+		return pkgs, err
 	}
 	for _, pkg := range packages {
 		pkg := feeds.NewPackage(pkg.ModifiedDate, pkg.Title, pkg.Version, FeedName)
@@ -110,4 +112,12 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	}
 	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
 	return pkgs, nil
+}
+
+func (feed Feed) GetName() string {
+	return FeedName
+}
+
+func (feed Feed) GetFeedOptions() feeds.FeedOptions {
+	return feed.options
 }

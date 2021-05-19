@@ -1,22 +1,30 @@
 package scheduler
 
 import (
+	"fmt"
+	"net/http"
 	"time"
 
+	"github.com/robfig/cron"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ossf/package-feeds/feeds"
+	"github.com/ossf/package-feeds/publisher"
 )
 
 // Scheduler is a registry of feeds that should be run on a schedule.
 type Scheduler struct {
-	registry map[string]feeds.ScheduledFeed
+	registry  map[string]feeds.ScheduledFeed
+	publisher publisher.Publisher
+	httpPort  int
 }
 
-// New returns a new Scheduler with configured feeds registered.
-func New(feedsMap map[string]feeds.ScheduledFeed) *Scheduler {
+// New returns a new Scheduler with a publisher and feeds configured for polling.
+func New(feedsMap map[string]feeds.ScheduledFeed, pub publisher.Publisher, httpPort int) *Scheduler {
 	return &Scheduler{
-		registry: feedsMap,
+		registry:  feedsMap,
+		publisher: pub,
+		httpPort:  httpPort,
 	}
 }
 
@@ -27,39 +35,36 @@ type pollResult struct {
 	err      error
 }
 
-// Poll fetches the latest packages from each registered feed.
-func (s *Scheduler) Poll(cutoff time.Time) ([]*feeds.Package, []error) {
-	results := make(chan pollResult)
-	for name, feed := range s.registry {
-		go func(name string, feed feeds.ScheduledFeed) {
-			result := pollResult{
-				name: name,
-				feed: feed,
-			}
-			result.packages, result.err = feed.Latest(cutoff)
-			results <- result
-		}(name, feed)
-	}
-	errs := []error{}
-	packages := []*feeds.Package{}
-	for i := 0; i < len(s.registry); i++ {
-		result := <-results
+// Runs several services for the operation of scheduler, this call is blocking until application exit
+// or failure in the HTTP server
+// Services include: Cron polling via FeedGroups, HTTP serving of FeedGroupsHandler.
+func (s *Scheduler) Run(initialCutoff time.Duration, enableDefaultTimer bool) error {
+	defaultSchedule := fmt.Sprintf("@every %s", initialCutoff.String())
 
-		logger := log.WithField("feed", result.name)
-		if result.err != nil {
-			logger.WithError(result.err).Error("error fetching packages")
-			errs = append(errs, result.err)
-			continue
-		}
-		for _, pkg := range result.packages {
-			log.WithFields(log.Fields{
-				"feed":    result.name,
-				"name":    pkg.Name,
-				"version": pkg.Version,
-			}).Print("Processing Package")
-		}
-		packages = append(packages, result.packages...)
-		logger.WithField("num_processed", len(result.packages)).Print("processed packages")
+	allFeeds := []feeds.ScheduledFeed{}
+	for _, feed := range s.registry {
+		allFeeds = append(allFeeds, feed)
 	}
-	return packages, errs
+
+	// Configure cron job for scheduled polling
+	cronJob := cron.New()
+	feedGroup := NewFeedGroup(allFeeds, s.publisher, initialCutoff)
+	if enableDefaultTimer {
+		err := cronJob.AddJob(defaultSchedule, feedGroup)
+		if err != nil {
+			return fmt.Errorf("failed to parse schedule `%s`: %w", defaultSchedule, err)
+		}
+		log.Printf("Running a timer %s", defaultSchedule)
+	}
+	cronJob.Start()
+
+	// Start http server for polling via HTTP requests
+	pollServer := NewFeedGroupsHandler([]*FeedGroup{feedGroup})
+	log.Infof("Listening on port %v\n", s.httpPort)
+	http.Handle("/", pollServer)
+	if err := http.ListenAndServe(fmt.Sprintf(":%v", s.httpPort), nil); err != nil {
+		return err
+	}
+
+	return nil
 }

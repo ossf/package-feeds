@@ -58,7 +58,11 @@ func TestDefault(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize feeds: %v", err)
 	}
-	_ = scheduler.New(scheduledFeeds)
+	pub, err := c.PubConfig.ToPublisher(context.TODO())
+	if err != nil {
+		t.Fatalf("Failed to initialise publisher from config")
+	}
+	_ = scheduler.New(scheduledFeeds, pub, c.HTTPPort)
 }
 
 func TestGetScheduledFeeds(t *testing.T) {
