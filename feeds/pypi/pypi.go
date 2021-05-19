@@ -151,6 +151,8 @@ type Feed struct {
 
 	lossyFeedAlerter *feeds.LossyFeedAlerter
 	baseURL          string
+
+	options feeds.FeedOptions
 }
 
 func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, error) {
@@ -158,6 +160,7 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 		packages:         feedOptions.Packages,
 		lossyFeedAlerter: feeds.NewLossyFeedAlerter(eventHandler),
 		baseURL:          "https://pypi.org/",
+		options:          feedOptions,
 	}, nil
 }
 
@@ -201,4 +204,12 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 
 func (feed Feed) GetPackageList() *[]string {
 	return feed.packages
+}
+
+func (feed Feed) GetName() string {
+	return FeedName
+}
+
+func (feed Feed) GetFeedOptions() feeds.FeedOptions {
+	return feed.options
 }

@@ -31,6 +31,7 @@ type actions struct {
 type Feed struct {
 	updateHost  string
 	versionHost string
+	options     feeds.FeedOptions
 }
 
 func New(feedOptions feeds.FeedOptions) (*Feed, error) {
@@ -43,6 +44,7 @@ func New(feedOptions feeds.FeedOptions) (*Feed, error) {
 	return &Feed{
 		updateHost:  "https://packagist.org",
 		versionHost: "https://repo.packagist.org",
+		options:     feedOptions,
 	}, nil
 }
 
@@ -133,4 +135,12 @@ func (f Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	}
 	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
 	return pkgs, nil
+}
+
+func (f Feed) GetName() string {
+	return FeedName
+}
+
+func (f Feed) GetFeedOptions() feeds.FeedOptions {
+	return f.options
 }

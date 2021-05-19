@@ -156,6 +156,7 @@ func fetchPackageInfo(url string) (*nugetPackageDetails, error) {
 
 type Feed struct {
 	baseURL string
+	options feeds.FeedOptions
 }
 
 func New(feedOptions feeds.FeedOptions) (*Feed, error) {
@@ -167,6 +168,7 @@ func New(feedOptions feeds.FeedOptions) (*Feed, error) {
 	}
 	return &Feed{
 		baseURL: "https://api.nuget.org/",
+		options: feedOptions,
 	}, nil
 }
 
@@ -220,4 +222,12 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
 
 	return pkgs, nil
+}
+
+func (feed Feed) GetName() string {
+	return FeedName
+}
+
+func (feed Feed) GetFeedOptions() feeds.FeedOptions {
+	return feed.options
 }

@@ -145,6 +145,7 @@ func fetchPackages(baseURL, pkgTitle string, count int) ([]*Package, error) {
 type Feed struct {
 	lossyFeedAlerter *feeds.LossyFeedAlerter
 	baseURL          string
+	options          feeds.FeedOptions
 }
 
 func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, error) {
@@ -157,6 +158,7 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 	return &Feed{
 		lossyFeedAlerter: feeds.NewLossyFeedAlerter(eventHandler),
 		baseURL:          "https://registry.npmjs.org/",
+		options:          feedOptions,
 	}, nil
 }
 
@@ -214,4 +216,12 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 
 	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
 	return pkgs, nil
+}
+
+func (feed Feed) GetName() string {
+	return FeedName
+}
+
+func (feed Feed) GetFeedOptions() feeds.FeedOptions {
+	return feed.options
 }

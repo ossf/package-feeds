@@ -14,6 +14,8 @@ type UnsupportedOptionError struct {
 
 type ScheduledFeed interface {
 	Latest(cutoff time.Time) ([]*Package, error)
+	GetFeedOptions() FeedOptions
+	GetName() string
 }
 
 // General configuration options for feeds.
