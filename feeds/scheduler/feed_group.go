@@ -26,6 +26,10 @@ func NewFeedGroup(scheduledFeeds []feeds.ScheduledFeed,
 	}
 }
 
+func (fg *FeedGroup) AddFeed(feed feeds.ScheduledFeed) {
+	fg.feeds = append(fg.feeds, feed)
+}
+
 func (fg *FeedGroup) Run() {
 	_, err := fg.PollAndPublish()
 	if err != nil {

@@ -23,6 +23,9 @@ type FeedOptions struct {
 	// A collection of package names to poll instead of standard firehose behaviour.
 	// Not supported by all feeds.
 	Packages *[]string `yaml:"packages"`
+
+	// Cron string for scheduling the polling for the feed.
+	PollRate string `yaml:"poll_rate"`
 }
 
 // Marshalled json output validated against package.schema.json.

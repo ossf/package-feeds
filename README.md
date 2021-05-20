@@ -47,11 +47,12 @@ timer: false
 ```
 
 `poll_rate` string formatted for [duration parser](https://golang.org/pkg/time/#ParseDuration).This is used as an initial value to generate a cutoff point for feed events relative to the given time at execution, with subsequent events using the previous time at execution as the cutoff point.
-`timer` will configure interal polling of the `feeds` at the given `poll_rate` period. To specify this configuration file, define its path in your environment under the `PACKAGE_FEEDS_CONFIG_PATH` variable.
+`timer` will configure interal polling of the `feeds` at the given `poll_rate` period, individual feeds configured with a `poll_rate` will poll on an interval regardless of these options. To specify this configuration file, define its path in your environment under the `PACKAGE_FEEDS_CONFIG_PATH` variable.
 
 ## FeedOptions
 
-Feeds can be configured with additional options, not all feeds will support these features. See the appropriate feed `README.md` for supported options.
+Feeds can be configured with additional options, not all feeds will support these features. Check [feeds/README.md](feeds/README.md) for more information on feed specific configurations.
+
 Below is an example of such options with pypi being configured to poll a specific set of packages
 
 ```
