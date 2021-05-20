@@ -3,6 +3,7 @@ package scheduler
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/robfig/cron"
@@ -41,25 +42,40 @@ type pollResult struct {
 func (s *Scheduler) Run(initialCutoff time.Duration, enableDefaultTimer bool) error {
 	defaultSchedule := fmt.Sprintf("@every %s", initialCutoff.String())
 
-	allFeeds := []feeds.ScheduledFeed{}
-	for _, feed := range s.registry {
-		allFeeds = append(allFeeds, feed)
+	schedules, err := buildSchedules(s.registry, s.publisher, initialCutoff)
+	if err != nil {
+		return err
 	}
+	feedGroups := []*FeedGroup{}
 
-	// Configure cron job for scheduled polling
+	// Configure cron job for scheduled polling.
 	cronJob := cron.New()
-	feedGroup := NewFeedGroup(allFeeds, s.publisher, initialCutoff)
-	if enableDefaultTimer {
-		err := cronJob.AddJob(defaultSchedule, feedGroup)
-		if err != nil {
-			return fmt.Errorf("failed to parse schedule `%s`: %w", defaultSchedule, err)
+	for schedule, feedGroup := range schedules {
+		feedGroups = append(feedGroups, feedGroup)
+
+		// Undefined schedules will follow the default schedule, if the default timer is enabled.
+		if schedule == "" {
+			if !enableDefaultTimer {
+				continue
+			}
+			schedule = defaultSchedule
 		}
-		log.Printf("Running a timer %s", defaultSchedule)
+
+		err := cronJob.AddJob(schedule, feedGroup)
+		if err != nil {
+			return fmt.Errorf("failed to parse schedule `%s`: %w", schedule, err)
+		}
+
+		feedNames := []string{}
+		for _, f := range feedGroup.feeds {
+			feedNames = append(feedNames, f.GetName())
+		}
+		log.Printf("Running a timer for %s with schedule %s", strings.Join(feedNames, ", "), schedule)
 	}
 	cronJob.Start()
 
 	// Start http server for polling via HTTP requests
-	pollServer := NewFeedGroupsHandler([]*FeedGroup{feedGroup})
+	pollServer := NewFeedGroupsHandler(feedGroups)
 	log.Infof("Listening on port %v\n", s.httpPort)
 	http.Handle("/", pollServer)
 	if err := http.ListenAndServe(fmt.Sprintf(":%v", s.httpPort), nil); err != nil {
@@ -67,4 +83,34 @@ func (s *Scheduler) Run(initialCutoff time.Duration, enableDefaultTimer bool) er
 	}
 
 	return nil
+}
+
+// Prepares a map of FeedGroups indexed by their appropriate cron schedule
+// The resulting map may have index "" with a FeedGroup of feeds without a schedule option configured.
+func buildSchedules(registry map[string]feeds.ScheduledFeed, pub publisher.Publisher,
+	initialCutoff time.Duration) (map[string]*FeedGroup, error) {
+	schedules := map[string]*FeedGroup{}
+	for _, feed := range registry {
+		options := feed.GetFeedOptions()
+
+		pollRate := options.PollRate
+		cutoff := initialCutoff
+		var err error
+		var schedule string
+
+		if pollRate != "" {
+			cutoff, err = time.ParseDuration(pollRate)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse `%s` as duration: %w", pollRate, err)
+			}
+			schedule = fmt.Sprintf("@every %s", pollRate)
+		}
+
+		// Initialize new schedules in map.
+		if _, ok := schedules[schedule]; !ok {
+			schedules[schedule] = NewFeedGroup([]feeds.ScheduledFeed{}, pub, cutoff)
+		}
+		schedules[schedule].AddFeed(feed)
+	}
+	return schedules, nil
 }
