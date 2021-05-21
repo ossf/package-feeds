@@ -32,7 +32,7 @@ func TestValidSchema(t *testing.T) {
 	validPackage := gojsonschema.NewGoLoader(dummyPackage)
 	result, err := gojsonschema.Validate(schemaLoader, validPackage)
 	if err != nil {
-		panic(err.Error())
+		t.Fatal(err)
 	}
 
 	if result.Valid() != true {
@@ -40,7 +40,7 @@ func TestValidSchema(t *testing.T) {
 		for _, desc := range result.Errors() {
 			out += fmt.Sprintf("- %s\n", desc)
 		}
-		t.Fatalf(out)
+		t.Fatal(out)
 	}
 }
 
@@ -54,7 +54,7 @@ func TestInvalidSchema(t *testing.T) {
 	invalidField := gojsonschema.NewGoLoader(invalidPackage)
 	result, err := gojsonschema.Validate(schemaLoader, invalidField)
 	if err != nil {
-		panic(err.Error())
+		t.Fatal(err)
 	}
 
 	if result.Valid() {
@@ -67,7 +67,7 @@ func TestInvalidSchema(t *testing.T) {
 	invalidFormat := gojsonschema.NewGoLoader(dummyPackage)
 	result, err = gojsonschema.Validate(schemaLoader, invalidFormat)
 	if err != nil {
-		panic(err.Error())
+		t.Fatal(err)
 	}
 
 	if result.Valid() {
