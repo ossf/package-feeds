@@ -49,6 +49,8 @@ timer: false
 `poll_rate` string formatted for [duration parser](https://golang.org/pkg/time/#ParseDuration).This is used as an initial value to generate a cutoff point for feed events relative to the given time at execution, with subsequent events using the previous time at execution as the cutoff point.
 `timer` will configure interal polling of the `feeds` at the given `poll_rate` period. To specify this configuration file, define its path in your environment under the `PACKAGE_FEEDS_CONFIG_PATH` variable.
 
+An event handler can be configured through the `events` field, this is documented in the [events README](events/README.md).
+
 ## FeedOptions
 
 Feeds can be configured with additional options, not all feeds will support these features. See the appropriate feed `README.md` for supported options.
