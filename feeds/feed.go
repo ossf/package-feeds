@@ -1,11 +1,14 @@
 package feeds
 
 import (
+	"errors"
 	"fmt"
 	"time"
 )
 
 const schemaVer = "1.0"
+
+var ErrNoPackagesPolled = errors.New("no packages were successfully polled")
 
 type UnsupportedOptionError struct {
 	Option string
@@ -13,7 +16,7 @@ type UnsupportedOptionError struct {
 }
 
 type ScheduledFeed interface {
-	Latest(cutoff time.Time) ([]*Package, error)
+	Latest(cutoff time.Time) ([]*Package, []error)
 	GetFeedOptions() FeedOptions
 	GetName() string
 }
@@ -35,6 +38,15 @@ type Package struct {
 	CreatedDate time.Time `json:"created_date"`
 	Type        string    `json:"type"`
 	SchemaVer   string    `json:"schema_ver"`
+}
+
+type PackagePollError struct {
+	Err  error
+	Name string
+}
+
+func (err PackagePollError) Error() string {
+	return fmt.Sprintf("Polling for package %s returned error: %v", err.Name, err.Err)
 }
 
 func NewPackage(created time.Time, name, version, feed string) *Package {

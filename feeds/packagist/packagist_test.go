@@ -29,9 +29,9 @@ func TestFetch(t *testing.T) {
 	feed.versionHost = srv.URL
 
 	cutoff := time.Unix(1614513658, 0)
-	latest, err := feed.Latest(cutoff)
-	if err != nil {
-		t.Fatalf("got error: %s", err)
+	latest, errs := feed.Latest(cutoff)
+	if len(errs) != 0 {
+		t.Fatalf("got error: %v", errs[len(errs)-1])
 	}
 	if len(latest) == 0 {
 		t.Fatalf("did not get any updates")
@@ -64,11 +64,11 @@ func TestPackagistNotFound(t *testing.T) {
 	feed.versionHost = srv.URL
 
 	cutoff := time.Unix(1614513658, 0)
-	_, err = feed.Latest(cutoff)
-	if err == nil {
-		t.Fatalf("feed.Latest() was successful when an error was expected")
+	_, errs := feed.Latest(cutoff)
+	if len(errs) != 1 {
+		t.Fatalf("feed.Latest() returned %v errors when 1 was expected", len(errs))
 	}
-	if !errors.Is(err, utils.ErrUnsuccessfulRequest) {
+	if !errors.Is(errs[len(errs)-1], utils.ErrUnsuccessfulRequest) {
 		t.Fatalf("feed.Latest() returned an error which did not match the expected error")
 	}
 }

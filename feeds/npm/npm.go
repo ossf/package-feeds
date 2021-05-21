@@ -138,13 +138,15 @@ func fetchPackage(baseURL, pkgTitle string) ([]*Package, error) {
 	return versionSlice, nil
 }
 
-func fetchAllPackages(url string) ([]*feeds.Package, error) {
+func fetchAllPackages(url string) ([]*feeds.Package, []error) {
 	pkgs := []*feeds.Package{}
+	errs := []error{}
 	packageChannel := make(chan []*Package)
-	errs := make(chan error)
+	errChannel := make(chan error)
 	packageEvents, err := fetchPackageEvents(url)
 	if err != nil {
-		return pkgs, err
+		// If we can't generate package events then return early.
+		return pkgs, append(errs, err)
 	}
 	// Handle the possibility of multiple releases of the same package
 	// within the polled `packages` slice.
@@ -157,7 +159,10 @@ func fetchAllPackages(url string) ([]*feeds.Package, error) {
 		go func(pkgTitle string, count int) {
 			pkgs, err := fetchPackage(url, pkgTitle)
 			if err != nil {
-				errs <- err
+				if !errors.Is(err, errUnpublished) {
+					err = feeds.PackagePollError{Name: pkgTitle, Err: err}
+				}
+				errChannel <- err
 				return
 			}
 			// Apply count slice
@@ -173,27 +178,31 @@ func fetchAllPackages(url string) ([]*feeds.Package, error) {
 					pkg.Version, FeedName)
 				pkgs = append(pkgs, feedPkg)
 			}
-		case err := <-errs:
-			// TODO: Add an event for unpublished package? This shouldn't
-			// be a hard error for the 'firehose'.
+		case err := <-errChannel:
+			// When polling the 'firehose' unpublished packages
+			// don't need to be logged as an error.
 			if !errors.Is(err, errUnpublished) {
-				return pkgs, fmt.Errorf("error in fetching version information: %w", err)
+				errs = append(errs, err)
 			}
 		}
 	}
-	return pkgs, nil
+	return pkgs, errs
 }
 
-func fetchCriticalPackages(url string, packages []string) ([]*feeds.Package, error) {
+func fetchCriticalPackages(url string, packages []string) ([]*feeds.Package, []error) {
 	pkgs := []*feeds.Package{}
+	errs := []error{}
 	packageChannel := make(chan []*Package)
-	errs := make(chan error)
+	errChannel := make(chan error)
 
 	for _, pkgTitle := range packages {
 		go func(pkgTitle string) {
 			pkgs, err := fetchPackage(url, pkgTitle)
 			if err != nil {
-				errs <- err
+				if !errors.Is(err, errUnpublished) {
+					err = feeds.PackagePollError{Name: pkgTitle, Err: err}
+				}
+				errChannel <- err
 				return
 			}
 			packageChannel <- pkgs
@@ -208,13 +217,15 @@ func fetchCriticalPackages(url string, packages []string) ([]*feeds.Package, err
 					pkg.Version, FeedName)
 				pkgs = append(pkgs, feedPkg)
 			}
-		case err := <-errs:
-			// Assume if a package has been unpublished that it is a valid hard
-			// error when polling for 'critical' packages.
-			return pkgs, fmt.Errorf("error in fetching version information: %w", err)
+		case err := <-errChannel:
+			// Assume if a package has been unpublished that it is a valid reason
+			// to log the error when polling for 'critical' packages. This could
+			// be changed for a 'lossy' type event instead. Further packages should
+			// be proccessed.
+			errs = append(errs, err)
 		}
 	}
-	return pkgs, nil
+	return pkgs, errs
 }
 
 type Feed struct {
@@ -233,18 +244,19 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 	}, nil
 }
 
-func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
+func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 	pkgs := []*feeds.Package{}
-	var err error
+	var errs []error
 
 	if feed.packages == nil {
-		pkgs, err = fetchAllPackages(feed.baseURL)
+		pkgs, errs = fetchAllPackages(feed.baseURL)
 	} else {
-		pkgs, err = fetchCriticalPackages(feed.baseURL, *feed.packages)
+		pkgs, errs = fetchCriticalPackages(feed.baseURL, *feed.packages)
 	}
 
-	if err != nil {
-		return nil, err
+	if len(pkgs) == 0 {
+		// If none of the packages were successfully polled for, return early.
+		return nil, append(errs, feeds.ErrNoPackagesPolled)
 	}
 
 	// Ensure packages are sorted by CreatedDate in order of most recent, as goroutine
@@ -261,7 +273,7 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	}
 
 	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
-	return pkgs, nil
+	return pkgs, errs
 }
 
 func (feed Feed) GetName() string {

@@ -63,31 +63,38 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 	}, nil
 }
 
-func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
+func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 	pkgs := []*feeds.Package{}
 	packages := make(map[string]*Package)
+	var errs []error
 
 	newPackagesURL, err := utils.URLPathJoin(feed.baseURL, activityPath, "latest.json")
 	if err != nil {
-		return nil, err
+		// Failure to construct a url should lead to a hard failure.
+		return nil, append(errs, err)
 	}
 	newPackages, err := fetchPackages(newPackagesURL)
 	if err != nil {
-		return pkgs, err
-	}
-	for _, pkg := range newPackages {
-		packages[pkg.Name] = pkg
+		// Updated Packages could still be processed.
+		errs = append(errs, err)
+	} else {
+		for _, pkg := range newPackages {
+			packages[pkg.Name] = pkg
+		}
 	}
 	updatedPackagesURL, err := utils.URLPathJoin(feed.baseURL, activityPath, "just_updated.json")
 	if err != nil {
-		return nil, err
+		// Failure to construct a url should lead to a hard failure.
+		return nil, append(errs, err)
 	}
 	updatedPackages, err := fetchPackages(updatedPackagesURL)
 	if err != nil {
-		return pkgs, err
-	}
-	for _, pkg := range updatedPackages {
-		packages[pkg.Name] = pkg
+		// New Packages could still be processed.
+		errs = append(errs, err)
+	} else {
+		for _, pkg := range updatedPackages {
+			packages[pkg.Name] = pkg
+		}
 	}
 
 	for _, pkg := range packages {
@@ -97,7 +104,7 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	feed.lossyFeedAlerter.ProcessPackages(FeedName, pkgs)
 
 	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
-	return pkgs, nil
+	return pkgs, errs
 }
 
 func (feed Feed) GetName() string {

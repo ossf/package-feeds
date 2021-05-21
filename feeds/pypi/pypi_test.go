@@ -3,12 +3,12 @@ package pypi
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/ossf/package-feeds/events"
 	"github.com/ossf/package-feeds/feeds"
-	"github.com/ossf/package-feeds/utils"
 	testutils "github.com/ossf/package-feeds/utils/test"
 )
 
@@ -27,8 +27,8 @@ func TestPypiLatest(t *testing.T) {
 	feed.baseURL = srv.URL
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, err := feed.Latest(cutoff)
-	if err != nil {
+	pkgs, errs := feed.Latest(cutoff)
+	if len(errs) != 0 {
 		t.Fatalf("feed.Latest returned error: %v", err)
 	}
 
@@ -74,9 +74,9 @@ func TestPypiCriticalLatest(t *testing.T) {
 	feed.baseURL = srv.URL
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, err := feed.Latest(cutoff)
-	if err != nil {
-		t.Fatalf("Failed to call Latest() with err: %v", err)
+	pkgs, errs := feed.Latest(cutoff)
+	if len(errs) != 0 {
+		t.Fatalf("Failed to call Latest() with err: %v", errs[len(errs)-1])
 	}
 
 	const expectedNumPackages = 4
@@ -105,7 +105,7 @@ func TestPypiCriticalLatest(t *testing.T) {
 	}
 }
 
-func TestPypiNotFound(t *testing.T) {
+func TestPypiAllNotFound(t *testing.T) {
 	t.Parallel()
 
 	handlers := map[string]testutils.HTTPHandlerFunc{
@@ -127,12 +127,49 @@ func TestPypiNotFound(t *testing.T) {
 	feed.baseURL = srv.URL
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	_, err = feed.Latest(cutoff)
-	if err == nil {
-		t.Fatalf("feed.Latest() was successful when an error was expected")
+	_, errs := feed.Latest(cutoff)
+	if len(errs) != 3 {
+		t.Fatalf("feed.Latest() returned %v errors when 3 were expected", len(errs))
 	}
-	if !errors.Is(err, utils.ErrUnsuccessfulRequest) {
+	if !errors.Is(errs[len(errs)-1], feeds.ErrNoPackagesPolled) {
 		t.Fatalf("feed.Latest() returned an error which did not match the expected error")
+	}
+}
+
+func TestPypiCriticalPartialNotFound(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]testutils.HTTPHandlerFunc{
+		"/rss/project/foopy/releases.xml": foopyReleasesResponse,
+		"/rss/project/barpy/releases.xml": testutils.NotFoundHandlerFunc,
+	}
+	packages := []string{
+		"foopy",
+		"barpy",
+	}
+	srv := testutils.HTTPServerMock(handlers)
+
+	feed, err := New(feeds.FeedOptions{
+		Packages: &packages,
+	}, events.NewNullHandler())
+	if err != nil {
+		t.Fatalf("Failed to create pypi feed: %v", err)
+	}
+	feed.baseURL = srv.URL
+
+	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+	pkgs, errs := feed.Latest(cutoff)
+	if len(errs) != 1 {
+		t.Fatalf("feed.Latest() returned %v errors when 1 was expected", len(errs))
+	}
+	if !strings.Contains(errs[len(errs)-1].Error(), "barpy") {
+		t.Fatalf("Failed to correctly include the package name in feeds.PackagePollError, instead: %v", errs[len(errs)-1])
+	}
+	if !strings.Contains(errs[len(errs)-1].Error(), "404") {
+		t.Fatalf("Failed to wrapped expected 404 error in feeds.PackagePollError, instead: %v", errs[len(errs)-1])
+	}
+	if len(pkgs) != 2 {
+		t.Fatalf("Latest() produced %v packages instead of the expected %v", len(pkgs), 2)
 	}
 }
 

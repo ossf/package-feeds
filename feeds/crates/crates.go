@@ -80,11 +80,11 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 	}, nil
 }
 
-func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
+func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 	pkgs := []*feeds.Package{}
 	packages, err := fetchPackages(feed.baseURL)
 	if err != nil {
-		return pkgs, err
+		return pkgs, []error{err}
 	}
 	for _, pkg := range packages {
 		pkg := feeds.NewPackage(pkg.UpdatedAt, pkg.Name, pkg.NewestVersion, FeedName)
@@ -93,7 +93,7 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	feed.lossyFeedAlerter.ProcessPackages(FeedName, pkgs)
 
 	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
-	return pkgs, nil
+	return pkgs, []error{}
 }
 
 func (feed Feed) GetName() string {
