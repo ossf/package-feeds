@@ -10,7 +10,6 @@ import (
 
 	"github.com/ossf/package-feeds/events"
 	"github.com/ossf/package-feeds/feeds"
-	"github.com/ossf/package-feeds/utils"
 	testutils "github.com/ossf/package-feeds/utils/test"
 )
 
@@ -34,9 +33,9 @@ func TestNpmLatest(t *testing.T) {
 	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, err := feed.Latest(cutoff)
-	if err != nil {
-		t.Fatalf("feed.Latest returned error: %v", err)
+	pkgs, errs := feed.Latest(cutoff)
+	if len(errs) != 0 {
+		t.Fatalf("feed.Latest returned error: %v", errs[len(errs)-1])
 	}
 
 	if pkgs[0].Name != "FooPackage" {
@@ -121,9 +120,9 @@ func TestNpmCritical(t *testing.T) {
 	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, err := feed.Latest(cutoff)
-	if err != nil {
-		t.Fatalf("Failed to call Latest() with err: %v", err)
+	pkgs, errs := feed.Latest(cutoff)
+	if len(errs) != 0 {
+		t.Fatalf("Failed to call Latest() with err: %v", errs[len(errs)-1])
 	}
 
 	if len(pkgs) != 5 {
@@ -177,22 +176,24 @@ func TestNpmCriticalUnpublished(t *testing.T) {
 	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, err := feed.Latest(cutoff)
+	pkgs, errs := feed.Latest(cutoff)
 
-	if err == nil {
-		t.Fatalf("Expected unpublish error did not occur")
+	if len(errs) != 1 {
+		t.Fatalf("feed.Latest() returned %v errors when 1 was expected", len(errs))
 	}
 
-	if !errors.Is(err, errUnpublished) {
+	if !errors.Is(errs[len(errs)-1], errUnpublished) {
 		t.Fatalf("Failed to return unpublished error when polling for an unpublished package, instead: %v", err)
 	}
 
-	if !strings.Contains(err.Error(), "QuxPackage") {
-		t.Fatalf("Failed to correctly include the package name in unpublished error, instead: % v", err)
+	if !strings.Contains(errs[len(errs)-1].Error(), "QuxPackage") {
+		t.Fatalf("Failed to correctly include the package name in unpublished error, instead: %v", errs[len(errs)-1])
 	}
 
-	if len(pkgs) > 0 {
-		t.Fatalf("Latest() produced %v packages instead of the expected 0", len(pkgs))
+	// Even though QuxPackage is unpublished, the error should be
+	// logged and FooPackage should still be processed.
+	if len(pkgs) != 3 {
+		t.Fatalf("Latest() produced %v packages instead of the expected 3", len(pkgs))
 	}
 }
 
@@ -218,13 +219,11 @@ func TestNpmNonUtf8Response(t *testing.T) {
 	}
 }
 
-func TestNPMNotFound(t *testing.T) {
+func TestNpmNotFound(t *testing.T) {
 	t.Parallel()
 
 	handlers := map[string]testutils.HTTPHandlerFunc{
-		"/-/rss/":     testutils.NotFoundHandlerFunc,
-		"/FooPackage": testutils.NotFoundHandlerFunc,
-		"/BarPackage": testutils.NotFoundHandlerFunc,
+		"/-/rss/": testutils.NotFoundHandlerFunc,
 	}
 	srv := testutils.HTTPServerMock(handlers)
 
@@ -236,12 +235,88 @@ func TestNPMNotFound(t *testing.T) {
 	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	_, err = feed.Latest(cutoff)
-	if err == nil {
-		t.Fatalf("feed.Latest() was successful when an error was expected")
+	_, errs := feed.Latest(cutoff)
+	if len(errs) != 2 {
+		t.Fatalf("feed.Latest() returned %v errors when 2 were expected", len(errs))
 	}
-	if !errors.Is(err, utils.ErrUnsuccessfulRequest) {
+	if !errors.Is(errs[len(errs)-1], feeds.ErrNoPackagesPolled) {
 		t.Fatalf("feed.Latest() returned an error which did not match the expected error")
+	}
+}
+
+func TestNpmPartialNotFound(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]testutils.HTTPHandlerFunc{
+		"/-/rss/":     npmLatestPackagesResponse,
+		"/FooPackage": fooVersionInfoResponse,
+		"/BarPackage": barVersionInfoResponse,
+		"/BazPackage": bazVersionInfoResponse,
+		"/QuxPackage": testutils.NotFoundHandlerFunc,
+	}
+	srv := testutils.HTTPServerMock(handlers)
+
+	feed, err := New(feeds.FeedOptions{}, events.NewNullHandler())
+	feed.baseURL = srv.URL
+
+	if err != nil {
+		t.Fatalf("Failed to create new npm feed: %v", err)
+	}
+
+	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+	pkgs, errs := feed.Latest(cutoff)
+	if len(errs) != 1 {
+		t.Fatalf("feed.Latest() returned %v errors when 1 was expected", len(errs))
+	}
+	if !strings.Contains(errs[len(errs)-1].Error(), "QuxPackage") {
+		t.Fatalf("Failed to correctly include the package name in feeds.PackagePollError, instead: %v", errs[len(errs)-1])
+	}
+	if !strings.Contains(errs[len(errs)-1].Error(), "404") {
+		t.Fatalf("Failed to wrapped expected 404 error in feeds.PackagePollError, instead: %v", errs[len(errs)-1])
+	}
+	// Even though QuxPackage returns a 404, the error should be
+	// logged and the rest of the packages should still be processed.
+	if len(pkgs) != 4 {
+		t.Fatalf("Latest() produced %v packages instead of the expected 3", len(pkgs))
+	}
+}
+
+func TestNpmCriticalPartialNotFound(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]testutils.HTTPHandlerFunc{
+		"/FooPackage": fooVersionInfoResponse,
+		"/BarPackage": testutils.NotFoundHandlerFunc,
+	}
+	srv := testutils.HTTPServerMock(handlers)
+
+	packages := []string{
+		"FooPackage",
+		"BarPackage",
+	}
+
+	feed, err := New(feeds.FeedOptions{Packages: &packages}, events.NewNullHandler())
+	feed.baseURL = srv.URL
+
+	if err != nil {
+		t.Fatalf("Failed to create new npm feed: %v", err)
+	}
+
+	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+	pkgs, errs := feed.Latest(cutoff)
+	if len(errs) != 1 {
+		t.Fatalf("feed.Latest() returned %v errors when 1 was expected", len(errs))
+	}
+	if !strings.Contains(errs[len(errs)-1].Error(), "BarPackage") {
+		t.Fatalf("Failed to correctly include the package name in feeds.PackagePollError, instead: %v", errs[len(errs)-1])
+	}
+	if !strings.Contains(errs[len(errs)-1].Error(), "404") {
+		t.Fatalf("Failed to wrapped expected 404 error in feeds.PackagePollError, instead: %v", errs[len(errs)-1])
+	}
+	// Even though BarPackage returns a 404, the error should be
+	// logged and FooPackage should still be processed.
+	if len(pkgs) != 3 {
+		t.Fatalf("Latest() produced %v packages instead of the expected 3", len(pkgs))
 	}
 }
 

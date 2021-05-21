@@ -28,9 +28,9 @@ func TestRubyLatest(t *testing.T) {
 	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, err := feed.Latest(cutoff)
-	if err != nil {
-		t.Fatalf("feed.Latest returned error: %v", err)
+	pkgs, errs := feed.Latest(cutoff)
+	if len(errs) != 0 {
+		t.Fatalf("feed.Latest returned error: %v", errs[len(errs)-1])
 	}
 
 	var fooPkg *feeds.Package
@@ -78,12 +78,42 @@ func TestRubyGemsNotFound(t *testing.T) {
 	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	_, err = feed.Latest(cutoff)
-	if err == nil {
+	_, errs := feed.Latest(cutoff)
+	if len(errs) == 0 {
 		t.Fatalf("feed.Latest() was successful when an error was expected")
 	}
-	if !errors.Is(err, utils.ErrUnsuccessfulRequest) {
+	if !errors.Is(errs[len(errs)-1], utils.ErrUnsuccessfulRequest) {
 		t.Fatalf("feed.Latest() returned an error which did not match the expected error")
+	}
+}
+
+func TestRubyGemsPartialNotFound(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]testutils.HTTPHandlerFunc{
+		"/api/v1/activity/latest.json":       rubyGemsPackagesResponse,
+		"/api/v1/activity/just_updated.json": testutils.NotFoundHandlerFunc,
+	}
+	srv := testutils.HTTPServerMock(handlers)
+
+	feed, err := New(feeds.FeedOptions{}, events.NewNullHandler())
+	feed.baseURL = srv.URL
+	if err != nil {
+		t.Fatalf("failed to create new ruby feed: %v", err)
+	}
+
+	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+	pkgs, errs := feed.Latest(cutoff)
+	if len(errs) != 1 {
+		t.Fatalf("feed.Latest() returned %v errors when 1 was expected", len(errs))
+	}
+	if !errors.Is(errs[len(errs)-1], utils.ErrUnsuccessfulRequest) {
+		t.Fatalf("feed.Latest() returned an error which did not match the expected error")
+	}
+	// Although the just_updated (updatedPackages) endpoint failed, the two latest (newPackages)
+	// should be processed.
+	if len(pkgs) != 2 {
+		t.Fatalf("Latest() produced %v packages instead of the expected %v", len(pkgs), 2)
 	}
 }
 

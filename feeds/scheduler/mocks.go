@@ -9,7 +9,7 @@ import (
 
 type mockFeed struct {
 	packages []*feeds.Package
-	err      error
+	errs     []error
 	options  feeds.FeedOptions
 }
 
@@ -21,8 +21,8 @@ func (feed mockFeed) GetFeedOptions() feeds.FeedOptions {
 	return feed.options
 }
 
-func (feed mockFeed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
-	return feed.packages, feed.err
+func (feed mockFeed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
+	return feed.packages, feed.errs
 }
 
 type mockPublisher struct {

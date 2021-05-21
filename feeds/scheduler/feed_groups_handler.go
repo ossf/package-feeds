@@ -3,15 +3,11 @@ package scheduler
 import (
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 type FeedGroupsHandler struct {
 	feedGroups []*FeedGroup
-}
-
-type publishResult struct {
-	numPublished int
-	err          error
 }
 
 func NewFeedGroupsHandler(feeds []*FeedGroup) *FeedGroupsHandler {
@@ -19,29 +15,38 @@ func NewFeedGroupsHandler(feeds []*FeedGroup) *FeedGroupsHandler {
 }
 
 func (srv *FeedGroupsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var err error
-	resultChannel := make(chan publishResult, len(srv.feedGroups))
+	resultChannel := make(chan groupResult, len(srv.feedGroups))
 	numPublished := 0
+	var pollErr, pubErr error
+	var errStrings []string
 	for _, group := range srv.feedGroups {
 		go func(group *FeedGroup) {
-			numPublished, err := group.PollAndPublish()
-			resultChannel <- publishResult{numPublished, err}
+			result := group.pollAndPublish()
+			resultChannel <- result
 		}(group)
 	}
 	for range srv.feedGroups {
 		result := <-resultChannel
-
 		numPublished += result.numPublished
-		if result.err != nil {
-			http.Error(w, result.err.Error(), http.StatusInternalServerError)
-			return
+		if result.pollErr != nil {
+			pollErr = result.pollErr
+		}
+		if result.pubErr != nil {
+			pubErr = result.pubErr
 		}
 	}
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	for _, err := range []error{pollErr, pubErr} {
+		if err != nil {
+			errStrings = append(errStrings, err.Error())
+		}
+	}
+	if len(errStrings) > 0 {
+		http.Error(w, strings.Join(errStrings, "\n")+fmt.Sprintf("\n%d packages successfully processed, see log for details",
+			numPublished),
+			http.StatusInternalServerError)
 		return
 	}
-	_, err = w.Write([]byte(fmt.Sprintf("%d packages processed", numPublished)))
+	_, err := w.Write([]byte(fmt.Sprintf("%d packages processed", numPublished)))
 	if err != nil {
 		http.Error(w, "unexpected error during http server write: %w", http.StatusInternalServerError)
 	}

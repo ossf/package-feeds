@@ -26,8 +26,8 @@ func TestGoProxyLatest(t *testing.T) {
 	feed.baseURL = srv.URL
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, err := feed.Latest(cutoff)
-	if err != nil {
+	pkgs, errs := feed.Latest(cutoff)
+	if len(errs) != 0 {
 		t.Fatalf("feed.Latest returned error: %v", err)
 	}
 
@@ -66,11 +66,11 @@ func TestGoproxyNotFound(t *testing.T) {
 	feed.baseURL = srv.URL
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	_, err = feed.Latest(cutoff)
-	if err == nil {
+	_, errs := feed.Latest(cutoff)
+	if len(errs) == 0 {
 		t.Fatalf("feed.Latest() was successful when an error was expected")
 	}
-	if !errors.Is(err, utils.ErrUnsuccessfulRequest) {
+	if !errors.Is(errs[len(errs)-1], utils.ErrUnsuccessfulRequest) {
 		t.Fatalf("feed.Latest() returned an error which did not match the expected error")
 	}
 }

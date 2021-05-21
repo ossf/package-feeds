@@ -37,9 +37,9 @@ func TestFeedGroupPoll(t *testing.T) {
 	feedGroup := NewFeedGroup(mockFeeds, pub, time.Minute)
 	startLastPollValue := feedGroup.lastPoll
 
-	pkgs, errs := feedGroup.poll()
-	if len(errs) != 0 {
-		t.Fatalf("Unexpected errors arose during polling: %v", errs)
+	pkgs, err := feedGroup.poll()
+	if err != nil {
+		t.Fatalf("Unexpected error arose during polling: %v", err)
 	}
 	if len(pkgs) != 4 {
 		t.Fatalf("poll() returned %v packages when 4 were expected", len(pkgs))
@@ -54,7 +54,7 @@ func TestFeedGroupPollWithErr(t *testing.T) {
 
 	mockFeeds := []feeds.ScheduledFeed{
 		mockFeed{
-			err: errPackage,
+			errs: []error{errPackage},
 		},
 		mockFeed{
 			packages: []*feeds.Package{
@@ -70,9 +70,9 @@ func TestFeedGroupPollWithErr(t *testing.T) {
 	feedGroup := NewFeedGroup(mockFeeds, pub, time.Minute)
 	startLastPollValue := feedGroup.lastPoll
 
-	pkgs, errs := feedGroup.poll()
-	if len(errs) != 1 {
-		t.Fatalf("Expected error during polling but error list had %v entries", len(errs))
+	pkgs, err := feedGroup.poll()
+	if err == nil {
+		t.Fatalf("Expected error during polling")
 	}
 	if len(pkgs) != 2 {
 		t.Fatalf("Expected 2 packages alongside errors but found %v", len(pkgs))

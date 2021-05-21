@@ -39,9 +39,9 @@ func TestCanParseFeed(t *testing.T) {
 
 	cutoff := time.Now().Add(-5 * time.Minute)
 
-	results, err := sut.Latest(cutoff)
-	if err != nil {
-		t.Fatal(err)
+	results, errs := sut.Latest(cutoff)
+	if len(errs) != 0 {
+		t.Fatal(errs[len(errs)-1])
 	}
 
 	if len(results) != 1 {

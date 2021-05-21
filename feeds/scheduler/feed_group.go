@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -11,10 +12,21 @@ import (
 	"github.com/ossf/package-feeds/publisher"
 )
 
+var (
+	errPoll = errors.New("error when polling for packages")
+	errPub  = errors.New("error when publishing packages")
+)
+
 type FeedGroup struct {
 	feeds     []feeds.ScheduledFeed
 	publisher publisher.Publisher
 	lastPoll  time.Time
+}
+
+type groupResult struct {
+	numPublished int
+	pollErr      error
+	pubErr       error
 }
 
 func NewFeedGroup(scheduledFeeds []feeds.ScheduledFeed,
@@ -31,32 +43,37 @@ func (fg *FeedGroup) AddFeed(feed feeds.ScheduledFeed) {
 }
 
 func (fg *FeedGroup) Run() {
-	_, err := fg.PollAndPublish()
-	if err != nil {
-		log.Error(err)
+	result := fg.pollAndPublish()
+	if result.pollErr != nil {
+		log.Error(result.pollErr)
+	}
+	if result.pubErr != nil {
+		log.Error(result.pubErr)
 	}
 }
 
-func (fg *FeedGroup) PollAndPublish() (int, error) {
-	pkgs, errs := fg.poll()
-	if len(errs) > 0 {
-		return 0, errs[0]
-	} else if len(pkgs) == 0 {
-		return 0, nil
+func (fg *FeedGroup) pollAndPublish() groupResult {
+	result := groupResult{}
+	pkgs, err := fg.poll()
+	result.pollErr = err
+	// Return early if no packages to process
+	if len(pkgs) == 0 {
+		return result
 	}
-
 	log.WithField("num_packages", len(pkgs)).Printf("Publishing packages...")
-	numPublished, err := fg.publishPackages(pkgs)
-	if err != nil {
-		log.Errorf("Failed to publish %v packages due to err: %v", len(pkgs)-numPublished, err)
-		return numPublished, err
+	numPublished, pubErr := fg.publishPackages(pkgs)
+	result.numPublished = numPublished
+	if pubErr != nil {
+		log.Errorf("Failed to publish %v packages due to err: %v", len(pkgs)-numPublished, pubErr)
+		result.pubErr = errPub
+	} else {
+		log.WithField("num_packages", numPublished).Printf("Successfully published packages")
 	}
-	log.WithField("num_packages", numPublished).Printf("Successfully published packages")
-	return numPublished, nil
+	return result
 }
 
 // Poll fetches the latest packages from each registered feed.
-func (fg *FeedGroup) poll() ([]*feeds.Package, []error) {
+func (fg *FeedGroup) poll() ([]*feeds.Package, error) {
 	results := make(chan pollResult, len(fg.feeds))
 	for _, feed := range fg.feeds {
 		go func(feed feeds.ScheduledFeed) {
@@ -64,7 +81,7 @@ func (fg *FeedGroup) poll() ([]*feeds.Package, []error) {
 				name: feed.GetName(),
 				feed: feed,
 			}
-			result.packages, result.err = feed.Latest(fg.lastPoll)
+			result.packages, result.errs = feed.Latest(fg.lastPoll)
 			results <- result
 		}(feed)
 	}
@@ -74,10 +91,9 @@ func (fg *FeedGroup) poll() ([]*feeds.Package, []error) {
 		result := <-results
 
 		logger := log.WithField("feed", result.name)
-		if result.err != nil {
-			logger.WithError(result.err).Error("Error fetching packages")
-			errs = append(errs, result.err)
-			continue
+		for _, err := range result.errs {
+			logger.WithError(err).Error("Error fetching packages")
+			errs = append(errs, err)
 		}
 		for _, pkg := range result.packages {
 			log.WithFields(log.Fields{
@@ -89,11 +105,14 @@ func (fg *FeedGroup) poll() ([]*feeds.Package, []error) {
 		packages = append(packages, result.packages...)
 		logger.WithField("num_processed", len(result.packages)).Print("Packages successfully processed")
 	}
-
+	err := errPoll
+	if len(errs) == 0 {
+		err = nil
+	}
 	fg.lastPoll = time.Now().UTC()
 
 	log.Printf("%d packages processed", len(packages))
-	return packages, errs
+	return packages, err
 }
 
 func (fg *FeedGroup) publishPackages(pkgs []*feeds.Package) (int, error) {

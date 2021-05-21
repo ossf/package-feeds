@@ -97,7 +97,7 @@ func fetchPackages(baseURL string) ([]*Package, error) {
 	return rssResponse.Packages, nil
 }
 
-func fetchCriticalPackages(baseURL string, packageList []string) ([]*Package, error) {
+func fetchCriticalPackages(baseURL string, packageList []string) ([]*Package, []error) {
 	responseChannel := make(chan *Response)
 	errChannel := make(chan error)
 
@@ -106,19 +106,19 @@ func fetchCriticalPackages(baseURL string, packageList []string) ([]*Package, er
 			packageDataPath := fmt.Sprintf(packagePathFormat, pkgName)
 			pkgURL, err := utils.URLPathJoin(baseURL, packageDataPath)
 			if err != nil {
-				errChannel <- err
+				errChannel <- feeds.PackagePollError{Name: pkgName, Err: err}
 				return
 			}
 			resp, err := httpClient.Get(pkgURL)
 			if err != nil {
-				errChannel <- err
+				errChannel <- feeds.PackagePollError{Name: pkgName, Err: err}
 				return
 			}
 			defer resp.Body.Close()
 
 			err = utils.CheckResponseStatus(resp)
 			if err != nil {
-				errChannel <- fmt.Errorf("failed to fetch pypi package data: %w", err)
+				errChannel <- feeds.PackagePollError{Name: pkgName, Err: fmt.Errorf("failed to fetch pypi package data: %w", err)}
 				return
 			}
 
@@ -126,7 +126,7 @@ func fetchCriticalPackages(baseURL string, packageList []string) ([]*Package, er
 			reader := utils.NewUTF8OnlyReader(resp.Body)
 			err = xml.NewDecoder(reader).Decode(rssResponse)
 			if err != nil {
-				errChannel <- err
+				errChannel <- feeds.PackagePollError{Name: pkgName, Err: err}
 				return
 			}
 
@@ -135,15 +135,16 @@ func fetchCriticalPackages(baseURL string, packageList []string) ([]*Package, er
 	}
 
 	pkgs := []*Package{}
+	errs := []error{}
 	for i := 0; i < len(packageList); i++ {
 		select {
 		case response := <-responseChannel:
 			pkgs = append(pkgs, response.Packages...)
 		case err := <-errChannel:
-			return nil, err
+			errs = append(errs, err)
 		}
 	}
-	return pkgs, nil
+	return pkgs, errs
 }
 
 type Feed struct {
@@ -164,30 +165,39 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 	}, nil
 }
 
-func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
+func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 	pkgs := []*feeds.Package{}
 	var pypiPackages []*Package
+	var errs []error
 	var err error
 
 	if feed.packages == nil {
 		// Firehose fetch all packages.
+		// If this fails then we need to return, as it's the only source of
+		// data.
 		pypiPackages, err = fetchPackages(feed.baseURL)
+		if err != nil {
+			return nil, append(errs, err)
+		}
 	} else {
 		// Fetch specific packages individually from configured packages list.
-		pypiPackages, err = fetchCriticalPackages(feed.baseURL, *feed.packages)
+		pypiPackages, errs = fetchCriticalPackages(feed.baseURL, *feed.packages)
+		if len(pypiPackages) == 0 {
+			// If none of the packages were successfully polled for, return early.
+			return nil, append(errs, feeds.ErrNoPackagesPolled)
+		}
 	}
 
-	if err != nil {
-		return nil, err
-	}
 	for _, pkg := range pypiPackages {
 		pkgName, err := pkg.Name()
 		if err != nil {
-			return nil, err
+			errs = append(errs, err)
+			continue
 		}
 		pkgVersion, err := pkg.Version()
 		if err != nil {
-			return nil, err
+			errs = append(errs, err)
+			continue
 		}
 		pkg := feeds.NewPackage(pkg.CreatedDate.Time, pkgName, pkgVersion, FeedName)
 		pkgs = append(pkgs, pkg)
@@ -199,7 +209,7 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 	}
 
 	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
-	return pkgs, nil
+	return pkgs, errs
 }
 
 func (feed Feed) GetPackageList() *[]string {

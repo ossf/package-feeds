@@ -33,7 +33,7 @@ type pollResult struct {
 	name     string
 	feed     feeds.ScheduledFeed
 	packages []*feeds.Package
-	err      error
+	errs     []error
 }
 
 // Runs several services for the operation of scheduler, this call is blocking until application exit
