@@ -24,7 +24,8 @@ var (
 	httpClient = &http.Client{
 		Timeout: 10 * time.Second,
 	}
-	errJSON = errors.New("error unmarshaling json response internally")
+	errJSON        = errors.New("error unmarshaling json response internally")
+	errUnpublished = errors.New("package is currently unpublished")
 )
 
 type Response struct {
@@ -69,7 +70,7 @@ func fetchPackageEvents(baseURL string) ([]PackageEvent, error) {
 
 // Gets the package version & corresponding created date from NPM. Returns
 // a slice of {}Package.
-func fetchPackages(baseURL, pkgTitle string, count int) ([]*Package, error) {
+func fetchPackage(baseURL, pkgTitle string) ([]*Package, error) {
 	versionURL, err := utils.URLPathJoin(baseURL, pkgTitle)
 	if err != nil {
 		return nil, err
@@ -110,12 +111,7 @@ func fetchPackages(baseURL, pkgTitle string, count int) ([]*Package, error) {
 	_, unPublished := versions["unpublished"]
 
 	if unPublished {
-		unPublishedPackages := []*Package{}
-		for i := 0; i < count; i++ {
-			unPublishedPackages = append(unPublishedPackages,
-				&Package{Title: pkgTitle, Unpublished: true})
-		}
-		return unPublishedPackages, nil
+		return nil, fmt.Errorf("%s %w", pkgTitle, errUnpublished)
 	}
 
 	// Remove redundant entries in map, we're only interested in actual version pairs.
@@ -139,39 +135,17 @@ func fetchPackages(baseURL, pkgTitle string, count int) ([]*Package, error) {
 		return versionSlice[j].CreatedDate.Before(versionSlice[i].CreatedDate)
 	})
 
-	return versionSlice[:count], nil
+	return versionSlice, nil
 }
 
-type Feed struct {
-	lossyFeedAlerter *feeds.LossyFeedAlerter
-	baseURL          string
-	options          feeds.FeedOptions
-}
-
-func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, error) {
-	if feedOptions.Packages != nil {
-		return nil, feeds.UnsupportedOptionError{
-			Feed:   FeedName,
-			Option: "packages",
-		}
-	}
-	return &Feed{
-		lossyFeedAlerter: feeds.NewLossyFeedAlerter(eventHandler),
-		baseURL:          "https://registry.npmjs.org/",
-		options:          feedOptions,
-	}, nil
-}
-
-func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
+func fetchAllPackages(url string) ([]*feeds.Package, error) {
 	pkgs := []*feeds.Package{}
-	packageChannel := make(chan *Package)
+	packageChannel := make(chan []*Package)
 	errs := make(chan error)
-
-	packageEvents, err := fetchPackageEvents(feed.baseURL)
+	packageEvents, err := fetchPackageEvents(url)
 	if err != nil {
 		return pkgs, err
 	}
-
 	// Handle the possibility of multiple releases of the same package
 	// within the polled `packages` slice.
 	uniquePackages := make(map[string]int)
@@ -181,29 +155,96 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 
 	for pkgTitle, count := range uniquePackages {
 		go func(pkgTitle string, count int) {
-			pkgs, err := fetchPackages(feed.baseURL, pkgTitle, count)
+			pkgs, err := fetchPackage(url, pkgTitle)
 			if err != nil {
 				errs <- err
 				return
 			}
-			for _, pkg := range pkgs {
-				packageChannel <- pkg
-			}
+			// Apply count slice
+			packageChannel <- pkgs[:count]
 		}(pkgTitle, count)
 	}
 
-	for i := 0; i < len(packageEvents); i++ {
+	for i := 0; i < len(uniquePackages); i++ {
 		select {
-		case pkg := <-packageChannel:
-			// TODO: Add an event for unpublished package?
-			if !pkg.Unpublished {
+		case npmPkgs := <-packageChannel:
+			for _, pkg := range npmPkgs {
 				feedPkg := feeds.NewPackage(pkg.CreatedDate, pkg.Title,
 					pkg.Version, FeedName)
 				pkgs = append(pkgs, feedPkg)
 			}
 		case err := <-errs:
+			// TODO: Add an event for unpublished package? This shouldn't
+			// be a hard error for the 'firehose'.
+			if !errors.Is(err, errUnpublished) {
+				return pkgs, fmt.Errorf("error in fetching version information: %w", err)
+			}
+		}
+	}
+	return pkgs, nil
+}
+
+func fetchCriticalPackages(url string, packages []string) ([]*feeds.Package, error) {
+	pkgs := []*feeds.Package{}
+	packageChannel := make(chan []*Package)
+	errs := make(chan error)
+
+	for _, pkgTitle := range packages {
+		go func(pkgTitle string) {
+			pkgs, err := fetchPackage(url, pkgTitle)
+			if err != nil {
+				errs <- err
+				return
+			}
+			packageChannel <- pkgs
+		}(pkgTitle)
+	}
+
+	for i := 0; i < len(packages); i++ {
+		select {
+		case npmPkgs := <-packageChannel:
+			for _, pkg := range npmPkgs {
+				feedPkg := feeds.NewPackage(pkg.CreatedDate, pkg.Title,
+					pkg.Version, FeedName)
+				pkgs = append(pkgs, feedPkg)
+			}
+		case err := <-errs:
+			// Assume if a package has been unpublished that it is a valid hard
+			// error when polling for 'critical' packages.
 			return pkgs, fmt.Errorf("error in fetching version information: %w", err)
 		}
+	}
+	return pkgs, nil
+}
+
+type Feed struct {
+	packages         *[]string
+	lossyFeedAlerter *feeds.LossyFeedAlerter
+	baseURL          string
+	options          feeds.FeedOptions
+}
+
+func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, error) {
+	return &Feed{
+		packages:         feedOptions.Packages,
+		lossyFeedAlerter: feeds.NewLossyFeedAlerter(eventHandler),
+		baseURL:          "https://registry.npmjs.org/",
+		options:          feedOptions,
+	}, nil
+}
+
+func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
+	pkgs := []*feeds.Package{}
+	var err error
+
+	if feed.packages == nil {
+		pkgs, err = fetchAllPackages(feed.baseURL)
+	} else {
+		pkgs, err = fetchCriticalPackages(feed.baseURL, *feed.packages)
+	}
+
+	if err != nil {
+		return nil, err
 	}
 
 	// Ensure packages are sorted by CreatedDate in order of most recent, as goroutine
@@ -212,7 +253,12 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, error) {
 		return pkgs[j].CreatedDate.Before(pkgs[i].CreatedDate)
 	})
 
-	feed.lossyFeedAlerter.ProcessPackages(FeedName, pkgs)
+	// TODO: Add an event for checking if the previous package list contains entries
+	// that do not exist in the latest package list when polling for critical packages.
+	// This can highlight cases where specific versions have been unpublished.
+	if feed.packages == nil {
+		feed.lossyFeedAlerter.ProcessPackages(FeedName, pkgs)
+	}
 
 	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
 	return pkgs, nil
