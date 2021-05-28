@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -95,6 +96,103 @@ func TestNpmLatest(t *testing.T) {
 
 	if len(pkgs) != 4 {
 		t.Errorf("Unexpected amount of *feed.Package{} generated: %v", len(pkgs))
+	}
+}
+
+func TestNpmCritical(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]testutils.HTTPHandlerFunc{
+		"/FooPackage": fooVersionInfoResponse,
+		"/BarPackage": barVersionInfoResponse,
+	}
+	srv := testutils.HTTPServerMock(handlers)
+
+	packages := []string{
+		"FooPackage",
+		"BarPackage",
+	}
+
+	feed, err := New(feeds.FeedOptions{Packages: &packages}, events.NewNullHandler())
+	feed.baseURL = srv.URL
+
+	if err != nil {
+		t.Fatalf("Failed to create new npm feed: %v", err)
+	}
+
+	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+	pkgs, err := feed.Latest(cutoff)
+	if err != nil {
+		t.Fatalf("Failed to call Latest() with err: %v", err)
+	}
+
+	if len(pkgs) != 5 {
+		t.Fatalf("Latest() produced %v packages instead of the expected 7", len(pkgs))
+	}
+
+	pkgMap := map[string]map[string]*feeds.Package{}
+	pkgMap["FooPackage"] = map[string]*feeds.Package{}
+	pkgMap["BarPackage"] = map[string]*feeds.Package{}
+
+	for _, pkg := range pkgs {
+		pkgMap[pkg.Name][pkg.Version] = pkg
+	}
+
+	if _, ok := pkgMap["FooPackage"]["1.0.0"]; !ok {
+		t.Fatalf("Missing FooPackage 1.0.0")
+	}
+	if _, ok := pkgMap["FooPackage"]["0.9.1"]; !ok {
+		t.Fatalf("Missing FooPackage 0.9.1")
+	}
+	if _, ok := pkgMap["FooPackage"]["1.0.1"]; !ok {
+		t.Fatalf("Missing FooPackage 1.0.1")
+	}
+	if _, ok := pkgMap["BarPackage"]["0.4.0"]; !ok {
+		t.Fatalf("Missing BarPackage 0.4.0")
+	}
+	if _, ok := pkgMap["BarPackage"]["0.5.0-alpha"]; !ok {
+		t.Fatalf("Missing barpy 0.5.0-alpha")
+	}
+}
+
+func TestNpmCriticalUnpublished(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]testutils.HTTPHandlerFunc{
+		"/FooPackage": fooVersionInfoResponse,
+		"/QuxPackage": quxVersionInfoResponse,
+	}
+	srv := testutils.HTTPServerMock(handlers)
+
+	packages := []string{
+		"FooPackage",
+		"QuxPackage",
+	}
+
+	feed, err := New(feeds.FeedOptions{Packages: &packages}, events.NewNullHandler())
+	feed.baseURL = srv.URL
+
+	if err != nil {
+		t.Fatalf("Failed to create new npm feed: %v", err)
+	}
+
+	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+	pkgs, err := feed.Latest(cutoff)
+
+	if err == nil {
+		t.Fatalf("Expected unpublish error did not occur")
+	}
+
+	if !errors.Is(err, errUnpublished) {
+		t.Fatalf("Failed to return unpublished error when polling for an unpublished package, instead: %v", err)
+	}
+
+	if !strings.Contains(err.Error(), "QuxPackage") {
+		t.Fatalf("Failed to correctly include the package name in unpublished error, instead: % v", err)
+	}
+
+	if len(pkgs) > 0 {
+		t.Fatalf("Latest() produced %v packages instead of the expected 0", len(pkgs))
 	}
 }
 
@@ -252,10 +350,10 @@ func bazVersionInfoResponse(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// QuxPackage has an `unpublished` field, this should't cause an error but
-// a *feeds.Package{} should not be generated. Completely unpublishing a
-// package entails there's a minimum of 24hours before a new version of it may
-// be published.
+// QuxPackage has an `unpublished` field, this should't cause an error if polling
+// the 'firehose' but a *feeds.Package{} should not be generated. Completely
+// unpublishing a package entails there's a minimum of 24hours before a new version
+// of it may be published.
 func quxVersionInfoResponse(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write([]byte(`
 {
