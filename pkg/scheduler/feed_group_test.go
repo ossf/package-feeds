@@ -74,6 +74,9 @@ func TestFeedGroupPollWithErr(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected error during polling")
 	}
+	if !errors.Is(err, errPoll) {
+		t.Fatalf("Expected errPoll during polling")
+	}
 	if len(pkgs) != 2 {
 		t.Fatalf("Expected 2 packages alongside errors but found %v", len(pkgs))
 	}
@@ -126,5 +129,8 @@ func TestFeedGroupPublishWithErr(t *testing.T) {
 	_, err := feedGroup.publishPackages(pkgs)
 	if err == nil {
 		t.Fatalf("publishPackages provided no error when publishing produced an error")
+	}
+	if !errors.Is(err, errPub) {
+		t.Fatalf("Expected errPub during publishing")
 	}
 }
