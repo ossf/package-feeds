@@ -17,11 +17,12 @@ func TestNpmLatest(t *testing.T) {
 	t.Parallel()
 
 	handlers := map[string]testutils.HTTPHandlerFunc{
-		"/-/rss/":     npmLatestPackagesResponse,
-		"/FooPackage": fooVersionInfoResponse,
-		"/BarPackage": barVersionInfoResponse,
-		"/BazPackage": bazVersionInfoResponse,
-		"/QuxPackage": quxVersionInfoResponse,
+		"/-/rss/":      npmLatestPackagesResponse,
+		"/FooPackage":  fooVersionInfoResponse,
+		"/BarPackage":  barVersionInfoResponse,
+		"/BazPackage":  bazVersionInfoResponse,
+		"/QuxPackage":  quxVersionInfoResponse,
+		"/QuuxPackage": quuxVersionInfoResponse,
 	}
 	srv := testutils.HTTPServerMock(handlers)
 
@@ -48,6 +49,9 @@ func TestNpmLatest(t *testing.T) {
 		t.Errorf("Unexpected packages `%s` & `%s` instead of both being expected as `BazPackage`",
 			pkgs[2].Name, pkgs[3].Name)
 	}
+	if pkgs[4].Name != "QuuxPackage" {
+		t.Errorf("Unexpected package `%s` found in place of expected `QuuxPackage`", pkgs[4].Name)
+	}
 	if pkgs[0].Version != "1.0.1" {
 		t.Errorf("Unexpected version `%s` found in place of expected `1.0.1`", pkgs[0].Version)
 	}
@@ -59,6 +63,9 @@ func TestNpmLatest(t *testing.T) {
 	}
 	if pkgs[3].Version != "1.0" {
 		t.Errorf("Unexpected version `%s` found in place of expected `1.0.`", pkgs[3].Version)
+	}
+	if pkgs[4].Version != "1.1.1" {
+		t.Errorf("Unexpected version `%s` found in place of expected `1.1.1.`", pkgs[4].Version)
 	}
 
 	fooTime, err := time.Parse(time.RFC3339, "2021-05-11T18:32:01.000Z")
@@ -93,7 +100,15 @@ func TestNpmLatest(t *testing.T) {
 		t.Errorf("Unexpected created date `%s` found in place of expected `2021-05-11T14:18:32.000Z`", pkgs[3].CreatedDate)
 	}
 
-	if len(pkgs) != 4 {
+	quuxTime, err := time.Parse(time.RFC3339, "2021-05-11T14:15:43.000Z")
+	if err != nil {
+		t.Fatalf("time.Parse returned error: %v", err)
+	}
+	if !pkgs[4].CreatedDate.Equal(quuxTime) {
+		t.Errorf("Unexpected created date `%s` found in place of expected `2021-05-11T14:15:43.000Z`", pkgs[3].CreatedDate)
+	}
+
+	if len(pkgs) != 5 {
 		t.Errorf("Unexpected amount of *feed.Package{} generated: %v", len(pkgs))
 	}
 }
@@ -248,11 +263,12 @@ func TestNpmPartialNotFound(t *testing.T) {
 	t.Parallel()
 
 	handlers := map[string]testutils.HTTPHandlerFunc{
-		"/-/rss/":     npmLatestPackagesResponse,
-		"/FooPackage": fooVersionInfoResponse,
-		"/BarPackage": barVersionInfoResponse,
-		"/BazPackage": bazVersionInfoResponse,
-		"/QuxPackage": testutils.NotFoundHandlerFunc,
+		"/-/rss/":      npmLatestPackagesResponse,
+		"/FooPackage":  fooVersionInfoResponse,
+		"/BarPackage":  barVersionInfoResponse,
+		"/BazPackage":  bazVersionInfoResponse,
+		"/QuxPackage":  testutils.NotFoundHandlerFunc,
+		"/QuuxPackage": quuxVersionInfoResponse,
 	}
 	srv := testutils.HTTPServerMock(handlers)
 
@@ -276,8 +292,8 @@ func TestNpmPartialNotFound(t *testing.T) {
 	}
 	// Even though QuxPackage returns a 404, the error should be
 	// logged and the rest of the packages should still be processed.
-	if len(pkgs) != 4 {
-		t.Fatalf("Latest() produced %v packages instead of the expected 3", len(pkgs))
+	if len(pkgs) != 5 {
+		t.Fatalf("Latest() produced %v packages instead of the expected 5", len(pkgs))
 	}
 }
 
@@ -351,6 +367,16 @@ func npmLatestPackagesResponse(w http.ResponseWriter, r *http.Request) {
 			<title><![CDATA[QuxPackage]]></title>
 			<dc:creator><![CDATA[QuxMan]]></dc:creator>
 			<pubDate>Tue, 11 May 2021 14:17.12 GMT</pubDate>
+		</item>
+		<item>
+			<title><![CDATA[QuuxPackage]]></title>
+			<dc:creator><![CDATA[QuuxMan]]></dc:creator>
+			<pubDate>Tue, 11 May 2021 14:15.43 GMT</pubDate>
+		</item>
+		<item>
+			<title><![CDATA[QuuxPackage]]></title>
+			<dc:creator><![CDATA[QuuxMan]]></dc:creator>
+			<pubDate>Tue, 11 May 2021 14:14.31 GMT</pubDate>
 		</item>
     </channel>
 </rss>
@@ -443,6 +469,33 @@ func quxVersionInfoResponse(w http.ResponseWriter, r *http.Request) {
 			"time": "2021-05-11T14:17:12.000Z",
 			"versions": ["1.0", "1.1"]
 		}
+	}
+}
+`))
+	if err != nil {
+		fmt.Println("Unexpected error during mock http server write: %w", err)
+	}
+}
+
+// QuuxPackage has 2 entries in the registry rss, however one of the
+// versions was 'unpublished' (not all, unlike Qux). This could occur
+// for instance if a broken version was pushed incorrectly and subsequently
+// unpublished, in the delta between the package being reported to the
+// rss feed and the scraping of the package specific endpoint. If this
+// were to happen for a single registry entry (count == 1), then the
+// `cutoff` should handle older than expected versions being mistakenly
+// processed, assuming it was not completely unpublished.
+func quuxVersionInfoResponse(w http.ResponseWriter, r *http.Request) {
+	_, err := w.Write([]byte(`
+{
+	"name": "QuuxPackage",
+	"dist-tags": {
+		"latest": "1.0.1"
+	},
+	"time": {
+		"created": "2021-05-011T14:14:02.000Z",
+		"modified": "2021-05-11T14:15:49.000Z",
+		"1.1.1": "2021-05-11T14:15:43.000Z"
 	}
 }
 `))

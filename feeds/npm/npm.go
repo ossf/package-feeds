@@ -165,8 +165,16 @@ func fetchAllPackages(url string) ([]*feeds.Package, []error) {
 				errChannel <- err
 				return
 			}
-			// Apply count slice
-			packageChannel <- pkgs[:count]
+			// Apply count slice, guard against a given events corresponding
+			// version entry being unpublished by the time the specific
+			// endpoint has been processed. This seemingly happens silently
+			// without being recorded in the json. An `event` could be logged
+			// here.
+			if len(pkgs) > count {
+				packageChannel <- pkgs[:count]
+			} else {
+				packageChannel <- pkgs
+			}
 		}(pkgTitle, count)
 	}
 
