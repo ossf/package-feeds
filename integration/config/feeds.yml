@@ -1,0 +1,6 @@
+poll_rate: 30m
+publisher:
+  type: kafka
+  config:
+    brokers: ["kafka:9092"]
+    topic: "package-feeds"
