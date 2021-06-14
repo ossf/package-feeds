@@ -1,0 +1,37 @@
+version: "3"
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper@sha256:87314e87320abf190f0407bf1689f4827661fbb4d671a41cba62673b45b66bfa
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_SYNC_LIMIT: 2
+
+  kafka:
+    image: confluentinc/cp-kafka@sha256:c6320f9a0cbf57075e102546de110dcebdf374955f12388d58c23a54b8a47d31
+    ports:
+      - 9094:9094
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INTERNAL://kafka:9092,OUTSIDE://kafka:9094
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,OUTSIDE://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_offsets_topic_replication_factor: 1
+
+  feeds:
+    restart: "on-failure"
+    build:
+        context: ..
+    ports:
+      - 8080:8080
+    depends_on:
+      - kafka
+    environment:
+      PACKAGE_FEEDS_CONFIG_PATH: /config/feeds.yml
+    volumes:
+      - "./config/:/config/"
