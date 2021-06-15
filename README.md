@@ -7,10 +7,10 @@ Additionally, the repo contains a few subprojects to aid in the analysis of thes
 
 These are:
 
-[Feeds](./feeds/) to watch package registries (PyPI, NPM, etc.) for changes to packages
+[Feeds](./pkg/feeds/) to watch package registries (PyPI, NPM, etc.) for changes to packages
 and to make that data available via a single standard interface.
 
-[Publisher](./publisher/) provides the functionality to push package details from feeds towards
+[Publisher](./pkg/publisher/) provides the functionality to push package details from feeds towards
 external services such as GCP Pub/Sub. Package details are formatted inline with a versioned
 [json-schema](./package.schema.json).
 
@@ -49,11 +49,11 @@ timer: false
 `poll_rate` string formatted for [duration parser](https://golang.org/pkg/time/#ParseDuration).This is used as an initial value to generate a cutoff point for feed events relative to the given time at execution, with subsequent events using the previous time at execution as the cutoff point.
 `timer` will configure interal polling of the `feeds` at the given `poll_rate` period, individual feeds configured with a `poll_rate` will poll on an interval regardless of these options. To specify this configuration file, define its path in your environment under the `PACKAGE_FEEDS_CONFIG_PATH` variable.
 
-An event handler can be configured through the `events` field, this is documented in the [events README](events/README.md).
+An event handler can be configured through the `events` field, this is documented in the [events README](./pkg/events/README.md).
 
 ## FeedOptions
 
-Feeds can be configured with additional options, not all feeds will support these features. Check [feeds/README.md](feeds/README.md) for more information on feed specific configurations.
+Feeds can be configured with additional options, not all feeds will support these features. Check [feeds/README.md](./pkg/feeds/README.md) for more information on feed specific configurations.
 
 Below is an example of such options with pypi being configured to poll a specific set of packages
 
