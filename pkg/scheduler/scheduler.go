@@ -76,7 +76,7 @@ func (s *Scheduler) Run(initialCutoff time.Duration, enableDefaultTimer bool) er
 
 	// Start http server for polling via HTTP requests
 	pollServer := NewFeedGroupsHandler(feedGroups)
-	log.Infof("Listening on port %v\n", s.httpPort)
+	log.Infof("Listening on port %v", s.httpPort)
 	http.Handle("/", pollServer)
 	if err := http.ListenAndServe(fmt.Sprintf(":%v", s.httpPort), nil); err != nil {
 		return err
