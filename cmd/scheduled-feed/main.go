@@ -8,8 +8,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/ossf/package-feeds/config"
-	"github.com/ossf/package-feeds/feeds/scheduler"
+	"github.com/ossf/package-feeds/pkg/config"
+	"github.com/ossf/package-feeds/pkg/scheduler"
 )
 
 func main() {
