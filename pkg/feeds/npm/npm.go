@@ -96,7 +96,7 @@ func fetchPackage(baseURL, pkgTitle string) ([]*Package, error) {
 	// Using a struct for parsing also avoids the cost of deserializing data
 	// that is ultimately unused.
 	var packageDetails struct {
-		Time map[string]string `json:"time"`
+		Time map[string]interface{} `json:"time"`
 	}
 	err = json.Unmarshal(body, &packageDetails)
 	if err != nil {
@@ -123,7 +123,7 @@ func fetchPackage(baseURL, pkgTitle string) ([]*Package, error) {
 	// are unordered.
 	versionSlice := []*Package{}
 	for version, timestamp := range versions {
-		date, err := time.Parse(time.RFC3339, timestamp)
+		date, err := time.Parse(time.RFC3339, timestamp.(string))
 		if err != nil {
 			return nil, err
 		}
