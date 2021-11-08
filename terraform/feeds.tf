@@ -25,8 +25,9 @@ resource "google_service_account" "run-invoker-account" {
 }
 
 resource "google_project_iam_member" "run-invoker-iam" {
-  role   = "roles/run.invoker"
-  member = "serviceAccount:${google_service_account.run-invoker-account.email}"
+  role    = "roles/run.invoker"
+  project = var.project
+  member  = "serviceAccount:${google_service_account.run-invoker-account.email}"
 }
 
 resource "google_project_service" "services" {

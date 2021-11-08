@@ -25,6 +25,12 @@ resource "google_cloud_run_service" "run-scheduler" {
           name  = "OSSMALWARE_TOPIC_URL"
           value = "gcppubsub://${var.pubsub-topic-feed-id}"
         }
+        resources {
+          limits = {
+            memory = "512Mi"
+            cpu = "1000m"
+          }
+        }
       }
     }
   }
