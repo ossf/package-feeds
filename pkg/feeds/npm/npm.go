@@ -90,18 +90,19 @@ func fetchPackage(baseURL, pkgTitle string) ([]*Package, error) {
 	if err != nil {
 		return nil, err
 	}
-	var jsonMap map[string]interface{}
-	err = json.Unmarshal(body, &jsonMap)
+
+	// We only care about the `time` field as it contains all the versions in
+	// date order, from oldest to newest.
+	// Using a struct for parsing also avoids the cost of deserializing data
+	// that is ultimately unused.
+	var packageDetails struct {
+		Time map[string]interface{} `json:"time"`
+	}
+	err = json.Unmarshal(body, &packageDetails)
 	if err != nil {
 		return nil, fmt.Errorf("%w : %v for package %s", errJSON, err, pkgTitle)
 	}
-
-	// The json string `time` contains versions in date order, oldest to newest.
-	versions, ok := jsonMap["time"].(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("%w : 'time' not found for package %s ",
-			errJSON, pkgTitle)
-	}
+	versions := packageDetails.Time
 
 	// If `unpublished` exists in the version map then at a given point in time
 	// the package was 'entirely' removed, the packageEvent(s) received are for package
