@@ -71,6 +71,24 @@ feeds:
 Legacy configuration methods are still supported. By default, without a configuration file all feeds will be enabled. The environment variable `OSSMALWARE_TOPIC_URL` can be used to select the GCP pubsub publisher and `PORT` will configure the port for the HTTP server.
 The default `poll_rate` is 5 minutes, it is assumed that an external service is dispatching requests to the configured HTTP server at this frequency.
 
+# Running Locally
+
+To start an instance of `package-feeds` running on a local machine, run the
+following commands:
+
+```shell
+$ docker build . -t local-package-feeds        ## Build the container
+$ mkdir /tmp/feedconfig/                       ## Create the feeds.yml config
+$ cat << EOF >> /tmp/feedconfig/feeds.yml
+publisher:
+  type: stdout
+poll_rate: 5m
+http_port: 8080
+EOF
+$ docker run -v /tmp/feedconfig:/config/ \
+  -e "PACKAGE_FEEDS_CONFIG_PATH=/config/feeds.yml" \
+  -p 8080:8080 --rm -ti local-package-feeds    ## Start the container
+```
 
 # Contributing
 
