@@ -10,10 +10,16 @@ on:
   schedule:
     - cron: '22 19 * * 0'
 
+permissions: read-all
+
 jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
 
     strategy:
       fail-fast: false
@@ -21,7 +27,7 @@ jobs:
         language: [ 'go' ]
         # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python' ]
         # Learn more:
-      
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
@@ -31,7 +37,7 @@ jobs:
       uses: github/codeql-action/init@v1
       with:
         languages: ${{ matrix.language }}
- 
+
     - name: Autobuild
       uses: github/codeql-action/autobuild@v1
 
