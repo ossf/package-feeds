@@ -3,6 +3,7 @@ name: CI
 on:
   push:
   pull_request:
+permissions: read-all
 jobs:
   terraform-check:
     runs-on: ubuntu-latest

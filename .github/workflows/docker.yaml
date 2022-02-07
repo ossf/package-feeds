@@ -8,6 +8,9 @@ on:
       - v*
   # Run tests for any PRs.
   pull_request:
+
+permissions: read-all
+
 env:
   IMAGE_NAME: packagefeeds
 
