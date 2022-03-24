@@ -8,10 +8,10 @@ jobs:
   terraform-check:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@a12a3943b4bdde767164f792f33f40b04645d846
 
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v1
+      uses: hashicorp/setup-terraform@3d8debd658c92063839bc97da5c2427100420dec
 
     - name: terraform fmt
       run: terraform fmt -check
@@ -21,10 +21,10 @@ jobs:
   run-tests:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@a12a3943b4bdde767164f792f33f40b04645d846
 
     - name: Set up Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@f6164bd8c8acb4a71fb2791a8b6c4024ff038dab
       with:
         go-version: 1.15
 
@@ -34,10 +34,10 @@ jobs:
   build-verify:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@a12a3943b4bdde767164f792f33f40b04645d846
 
     - name: Set up Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@f6164bd8c8acb4a71fb2791a8b6c4024ff038dab
       with:
         go-version: 1.15
 
@@ -50,8 +50,8 @@ jobs:
   run-integration-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@a12a3943b4bdde767164f792f33f40b04645d846
+      - uses: actions/setup-python@0ebf233433c08fb9061af664d501c3f3ff0e9e20
         with:
           python-version: '3.7'
       - run: pip install -r requirements.txt
@@ -70,7 +70,7 @@ jobs:
         run: docker-compose -f docker-compose-integration.yml logs feeds > feeds-log.txt
         working-directory: ./integration/
         if: ${{ always() }}
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
         with:
           name: package-feeds log
           path: ./integration/feeds-log.txt
