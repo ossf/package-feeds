@@ -3,7 +3,7 @@ module github.com/ossf/package-feeds
 go 1.15
 
 require (
-	github.com/mitchellh/mapstructure v1.4.1
+	github.com/mitchellh/mapstructure v1.4.3
 	github.com/robfig/cron v1.2.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/xeipuuv/gojsonschema v1.2.0
