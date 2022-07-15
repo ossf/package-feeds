@@ -70,7 +70,7 @@ jobs:
         run: docker-compose -f docker-compose-integration.yml logs feeds > feeds-log.txt
         working-directory: ./integration/
         if: ${{ always() }}
-      - uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
+      - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
         with:
           name: package-feeds log
           path: ./integration/feeds-log.txt
