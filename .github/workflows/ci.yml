@@ -8,7 +8,7 @@ jobs:
   terraform-check:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+    - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@17d4c9b8043b238f6f35641cdd8433da1e6f3867
@@ -21,7 +21,7 @@ jobs:
   run-tests:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+    - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
 
     - name: Set up Go
       uses: actions/setup-go@84cbf8094393cdc5fe1fe1671ff2647332956b1a
@@ -34,7 +34,7 @@ jobs:
   build-verify:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+    - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
 
     - name: Set up Go
       uses: actions/setup-go@84cbf8094393cdc5fe1fe1671ff2647332956b1a
@@ -50,7 +50,7 @@ jobs:
   run-integration-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
       - uses: actions/setup-python@b55428b1882923874294fa556849718a1d7f2ca5
         with:
           python-version: '3.7'
