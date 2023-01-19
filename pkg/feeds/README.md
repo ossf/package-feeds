@@ -25,7 +25,7 @@ feeds:
 feeds:
 - type: npm
   options:
-    poll_rate: "5m"
+    poll_rate: "10m"
 - type: crates
   options:
     poll_rate: "1h"
