@@ -26,17 +26,19 @@ jobs:
     - name: Setup Environment
       run: echo "GOOGLE_APPLICATION_CREDENTIALS=${GITHUB_WORKSPACE}/credentials.json" >> $GITHUB_ENV;
 
-    - name: Set up Cloud SDK
-      uses: google-github-actions/setup-gcloud@62d4898025f6041e16b1068643bfc5a696863587 # v1.1.0
-      with:
+    - name: Authenticate to Google Could
+      uses: google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d # v1.0.0
         project_id: ${{ secrets.GCP_PROJECT_ID }}
         service_account_key: ${{ secrets.TF_GOOGLE_CREDENTIALS }}
         export_default_credentials: true
 
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@62d4898025f6041e16b1068643bfc5a696863587 # v1.1.0
+
     - name: Configure gcloud
       run: gcloud config set project ${{ secrets.GOOGLE_PROJECT_ID }}
 
-    - name: Generate the images for each feed 
+    - name: Generate the images for each feed
       run: gcloud builds submit --tag gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/scheduled-feeds
 
     - name: Terraform Init
