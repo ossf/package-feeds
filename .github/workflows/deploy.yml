@@ -30,8 +30,8 @@ jobs:
       uses: google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d # v1.0.0
       with:
         project_id: ${{ secrets.GCP_PROJECT_ID }}
-        credentials_json: ${{ env.GOOGLE_APPLICATION_CREDENTIALS }}
-        export_default_credentials: true
+        credentials_json: ${{ secrets.TF_GOOGLE_CREDENTIALS }}
+        export_environment_variables: true
 
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@62d4898025f6041e16b1068643bfc5a696863587 # v1.1.0
