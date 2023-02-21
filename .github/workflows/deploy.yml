@@ -23,15 +23,12 @@ jobs:
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@633666f66e0061ca3b725c73b2ec20cd13a8fdd1
 
-    - name: Setup Environment
-      run: echo "GOOGLE_APPLICATION_CREDENTIALS=${GITHUB_WORKSPACE}/credentials.json" >> $GITHUB_ENV
-
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d # v1.0.0
       with:
         project_id: ${{ secrets.GCP_PROJECT_ID }}
-        credentials_json: ${{ env.GOOGLE_APPLICATION_CREDENTIALS }}
-        export_default_credentials: true
+        credentials_json: ${{ secrets.TF_GOOGLE_CREDENTIALS }}
+        export_environment_variables: true
 
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@62d4898025f6041e16b1068643bfc5a696863587 # v1.1.0
