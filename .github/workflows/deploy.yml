@@ -4,6 +4,9 @@ on:
   push:
     branches:
     - main
+  pull_request:
+    branches:
+    - main
 
 permissions: read-all
 
@@ -40,30 +43,4 @@ jobs:
       run: gcloud config set project ${{ secrets.GOOGLE_PROJECT_ID }}
 
     - name: Generate the images for each feed
-      run: gcloud builds submit --tag gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/scheduled-feeds
-
-    - name: Terraform Init
-      run: terraform init
-      working-directory: ./terraform
-
-    - name: Terraform Format
-      run: terraform fmt -check
-      working-directory: ./terraform
-
-    - name: Terraform Plan
-      run: terraform plan
-      working-directory: ./terraform
-
-    - name: Terraform Apply
-      if: github.ref == 'refs/heads/main'
-      run: terraform apply -auto-approve
-      working-directory: ./terraform
-
-    - name: Deploy to Cloud Run
-      if: github.ref == 'refs/heads/main'
-      run: |
-        gcloud run deploy \
-          scheduled-feeds-srv \
-          --platform managed \
-          --region us-central1 \
-          --image gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/scheduled-feeds;
+      run: gcloud projects describe ossf-malware-analysis
