@@ -1,7 +1,7 @@
 name: 'Test gcloud authentication'
 
 on:
-  pull-request:
+  pull_request:
     branches:
     - main
 
@@ -19,9 +19,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
-
-    - name: Setup Environment
-      run: echo "GOOGLE_APPLICATION_CREDENTIALS=${GITHUB_WORKSPACE}/credentials.json" >> $GITHUB_ENV
 
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d # v1.0.0
