@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const schemaVer = "1.0"
+const schemaVer = "1.1"
 
 var ErrNoPackagesPolled = errors.New("no packages were successfully polled")
 
@@ -37,6 +37,7 @@ type Package struct {
 	Version     string    `json:"version"`
 	CreatedDate time.Time `json:"created_date"`
 	Type        string    `json:"type"`
+	ArchiveName string    `json:"archive_name"`
 	SchemaVer   string    `json:"schema_ver"`
 }
 
@@ -50,11 +51,16 @@ func (err PackagePollError) Error() string {
 }
 
 func NewPackage(created time.Time, name, version, feed string) *Package {
+	return NewPackageArchive(created, name, version, "", feed)
+}
+
+func NewPackageArchive(created time.Time, name, version, archiveName, feed string) *Package {
 	return &Package{
 		Name:        name,
 		Version:     version,
 		CreatedDate: created,
 		Type:        feed,
+		ArchiveName: archiveName,
 		SchemaVer:   schemaVer,
 	}
 }
