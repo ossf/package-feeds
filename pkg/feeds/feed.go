@@ -37,7 +37,7 @@ type Package struct {
 	Version     string    `json:"version"`
 	CreatedDate time.Time `json:"created_date"`
 	Type        string    `json:"type"`
-	ArtifactId  string    `json:"artifact_id"`
+	ArtifactID  string    `json:"artifact_id"`
 	SchemaVer   string    `json:"schema_ver"`
 }
 
@@ -62,7 +62,7 @@ func NewArtifact(created time.Time, name, version, artifactId, feed string) *Pac
 		Version:     version,
 		CreatedDate: created,
 		Type:        feed,
-		ArtifactId:  artifactId,
+		ArtifactID:  artifactId,
 		SchemaVer:   schemaVer,
 	}
 }

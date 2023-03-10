@@ -8,8 +8,8 @@ import (
 	"github.com/ossf/package-feeds/pkg/feeds"
 )
 
-// testApiData is a sample of PyPI changelog raw data (as a Go struct)
-var testApiData = [][]interface{}{
+// testAPIData is a sample of PyPI changelog raw data (as a Go struct).
+var testAPIData = [][]interface{}{
 	{"supertemplater", "1.4.0", int64(1678414652), "new release"},
 	{"supertemplater", "1.4.0", int64(1678414652), "add py3 file supertemplater-1.4.0-py3-none-any.whl"},
 	{"supertemplater", "1.4.0", int64(1678414654), "add source file supertemplater-1.4.0.tar.gz"},
@@ -42,7 +42,7 @@ var testApiData = [][]interface{}{
 	{"callpyfile", "0.10", int64(1678415403), "add source file callpyfile-0.10.tar.gz"},
 }
 
-// testChangelogEntries is a sample of PyPI changelog data after processing, corresponding to the above raw data
+// testChangelogEntries is a sample of PyPI changelog data after processing, corresponding to the above raw data.
 var testChangelogEntries = []pypiChangelogEntry{
 	{Name: "supertemplater", Version: "1.4.0", Timestamp: time.Unix(1678414652, 0), Action: "new release", ArchiveName: ""},
 	{Name: "supertemplater", Version: "1.4.0", Timestamp: time.Unix(1678414652, 0), Action: "add py3 file supertemplater-1.4.0-py3-none-any.whl", ArchiveName: "supertemplater-1.4.0-py3-none-any.whl"},
@@ -98,7 +98,7 @@ func TestPyPIArtifactsLive(t *testing.T) {
 		if p.Version == "" {
 			t.Errorf("Package has no version: %s", p)
 		}
-		if p.ArtifactId == "" {
+		if p.ArtifactID == "" {
 			t.Errorf("Package has no artifact ID: %s", p)
 		}
 		if p.CreatedDate.Unix() < cutoff.Unix() {
@@ -115,7 +115,7 @@ func TestProcessRawChangelog(t *testing.T) {
 	t.Parallel()
 
 	expectedResults := testChangelogEntries
-	actualResults := processRawChangelog(testApiData)
+	actualResults := processRawChangelog(testAPIData)
 
 	if len(actualResults) != len(expectedResults) {
 		t.Errorf("expected %d changelog entries, got %d", len(expectedResults), len(actualResults))
@@ -137,25 +137,25 @@ func TestCachedLatest(t *testing.T) {
 	t.Parallel()
 
 	expectedResults := []*feeds.Package{
-		{Name: "supertemplater", Version: "1.4.0", CreatedDate: time.Unix(1678414652, 0), ArtifactId: "supertemplater-1.4.0-py3-none-any.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
-		{Name: "supertemplater", Version: "1.4.0", CreatedDate: time.Unix(1678414654, 0), ArtifactId: "supertemplater-1.4.0.tar.gz", Type: ArtifactFeedName, SchemaVer: "1.1"},
-		{Name: "OpenVisus", Version: "2.2.96", CreatedDate: time.Unix(1678414663, 0), ArtifactId: "OpenVisus-2.2.96-cp310-none-macosx_10_9_x86_64.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
-		{Name: "OpenVisusNoGui", Version: "2.2.96", CreatedDate: time.Unix(1678414694, 0), ArtifactId: "OpenVisusNoGui-2.2.96-cp310-none-macosx_10_9_x86_64.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
-		{Name: "benchling-api-client", Version: "2.0.118", CreatedDate: time.Unix(1678414736, 0), ArtifactId: "benchling_api_client-2.0.118-py3-none-any.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
-		{Name: "benchling-api-client", Version: "2.0.118", CreatedDate: time.Unix(1678414738, 0), ArtifactId: "benchling_api_client-2.0.118.tar.gz", Type: ArtifactFeedName, SchemaVer: "1.1"},
-		{Name: "adbutils", Version: "1.2.9", CreatedDate: time.Unix(1678415159, 0), ArtifactId: "adbutils-1.2.9-py3-none-macosx_10_9_intel.macosx_10_9_x86_64.macosx_10_10_intel.macosx_10_10_x86_64.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
-		{Name: "adbutils", Version: "1.2.9", CreatedDate: time.Unix(1678415161, 0), ArtifactId: "adbutils-1.2.9-py3-none-manylinux1_x86_64.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
-		{Name: "adbutils", Version: "1.2.9", CreatedDate: time.Unix(1678415164, 0), ArtifactId: "adbutils-1.2.9-py3-none-win32.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
-		{Name: "adbutils", Version: "1.2.9", CreatedDate: time.Unix(1678415166, 0), ArtifactId: "adbutils-1.2.9-py3-none-win_amd64.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
-		{Name: "adbutils", Version: "1.2.9", CreatedDate: time.Unix(1678415167, 0), ArtifactId: "adbutils-1.2.9.tar.gz", Type: ArtifactFeedName, SchemaVer: "1.1"},
-		{Name: "qiskit-qasm2", Version: "0.5.1", CreatedDate: time.Unix(1678415182, 0), ArtifactId: "qiskit_qasm2-0.5.1.tar.gz", Type: ArtifactFeedName, SchemaVer: "1.1"},
-		{Name: "genai", Version: "0.12.0a0", CreatedDate: time.Unix(1678415278, 0), ArtifactId: "genai-0.12.0a0-py3-none-any.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
-		{Name: "genai", Version: "0.12.0a0", CreatedDate: time.Unix(1678415281, 0), ArtifactId: "genai-0.12.0a0.tar.gz", Type: ArtifactFeedName, SchemaVer: "1.1"},
-		{Name: "chia-blockchain", Version: "1.7.1rc1", CreatedDate: time.Unix(1678415319, 0), ArtifactId: "chia-blockchain-1.7.1rc1.tar.gz", Type: ArtifactFeedName, SchemaVer: "1.1"},
-		{Name: "ScraperFC", Version: "2.6.3", CreatedDate: time.Unix(1678415386, 0), ArtifactId: "ScraperFC-2.6.3-py3-none-any.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
-		{Name: "ScraperFC", Version: "2.6.3", CreatedDate: time.Unix(1678415389, 0), ArtifactId: "ScraperFC-2.6.3.tar.gz", Type: ArtifactFeedName, SchemaVer: "1.1"},
-		{Name: "callpyfile", Version: "0.10", CreatedDate: time.Unix(1678415402, 0), ArtifactId: "callpyfile-0.10-py3-none-any.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
-		{Name: "callpyfile", Version: "0.10", CreatedDate: time.Unix(1678415403, 0), ArtifactId: "callpyfile-0.10.tar.gz", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "supertemplater", Version: "1.4.0", CreatedDate: time.Unix(1678414652, 0), ArtifactID: "supertemplater-1.4.0-py3-none-any.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "supertemplater", Version: "1.4.0", CreatedDate: time.Unix(1678414654, 0), ArtifactID: "supertemplater-1.4.0.tar.gz", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "OpenVisus", Version: "2.2.96", CreatedDate: time.Unix(1678414663, 0), ArtifactID: "OpenVisus-2.2.96-cp310-none-macosx_10_9_x86_64.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "OpenVisusNoGui", Version: "2.2.96", CreatedDate: time.Unix(1678414694, 0), ArtifactID: "OpenVisusNoGui-2.2.96-cp310-none-macosx_10_9_x86_64.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "benchling-api-client", Version: "2.0.118", CreatedDate: time.Unix(1678414736, 0), ArtifactID: "benchling_api_client-2.0.118-py3-none-any.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "benchling-api-client", Version: "2.0.118", CreatedDate: time.Unix(1678414738, 0), ArtifactID: "benchling_api_client-2.0.118.tar.gz", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "adbutils", Version: "1.2.9", CreatedDate: time.Unix(1678415159, 0), ArtifactID: "adbutils-1.2.9-py3-none-macosx_10_9_intel.macosx_10_9_x86_64.macosx_10_10_intel.macosx_10_10_x86_64.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "adbutils", Version: "1.2.9", CreatedDate: time.Unix(1678415161, 0), ArtifactID: "adbutils-1.2.9-py3-none-manylinux1_x86_64.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "adbutils", Version: "1.2.9", CreatedDate: time.Unix(1678415164, 0), ArtifactID: "adbutils-1.2.9-py3-none-win32.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "adbutils", Version: "1.2.9", CreatedDate: time.Unix(1678415166, 0), ArtifactID: "adbutils-1.2.9-py3-none-win_amd64.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "adbutils", Version: "1.2.9", CreatedDate: time.Unix(1678415167, 0), ArtifactID: "adbutils-1.2.9.tar.gz", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "qiskit-qasm2", Version: "0.5.1", CreatedDate: time.Unix(1678415182, 0), ArtifactID: "qiskit_qasm2-0.5.1.tar.gz", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "genai", Version: "0.12.0a0", CreatedDate: time.Unix(1678415278, 0), ArtifactID: "genai-0.12.0a0-py3-none-any.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "genai", Version: "0.12.0a0", CreatedDate: time.Unix(1678415281, 0), ArtifactID: "genai-0.12.0a0.tar.gz", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "chia-blockchain", Version: "1.7.1rc1", CreatedDate: time.Unix(1678415319, 0), ArtifactID: "chia-blockchain-1.7.1rc1.tar.gz", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "ScraperFC", Version: "2.6.3", CreatedDate: time.Unix(1678415386, 0), ArtifactID: "ScraperFC-2.6.3-py3-none-any.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "ScraperFC", Version: "2.6.3", CreatedDate: time.Unix(1678415389, 0), ArtifactID: "ScraperFC-2.6.3.tar.gz", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "callpyfile", Version: "0.10", CreatedDate: time.Unix(1678415402, 0), ArtifactID: "callpyfile-0.10-py3-none-any.whl", Type: ArtifactFeedName, SchemaVer: "1.1"},
+		{Name: "callpyfile", Version: "0.10", CreatedDate: time.Unix(1678415403, 0), ArtifactID: "callpyfile-0.10.tar.gz", Type: ArtifactFeedName, SchemaVer: "1.1"},
 	}
 
 	actualResults := getUploadedArtifacts(testChangelogEntries)

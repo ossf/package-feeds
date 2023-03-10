@@ -32,7 +32,10 @@ func NewArtifactFeed(feedOptions feeds.FeedOptions) (*ArtifactFeed, error) {
 }
 
 func (feed ArtifactFeed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
-	client, _ := xmlrpc.NewClient(feed.baseURL, nil)
+	client, err := xmlrpc.NewClient(feed.baseURL, nil)
+	if err != nil {
+		return nil, []error{err}
+	}
 
 	changelogEntries, err := getPyPIChangeLog(client, cutoff)
 	if err != nil {
@@ -57,11 +60,11 @@ type pypiChangelogEntry struct {
 	ArchiveName string
 }
 
-func (e pypiChangelogEntry) isArchiveUpload() bool {
+func (e *pypiChangelogEntry) isArchiveUpload() bool {
 	return e.ArchiveName != ""
 }
 
-func (e pypiChangelogEntry) String() string {
+func (e *pypiChangelogEntry) String() string {
 	return fmt.Sprintf("%s (%s): %s ts=%s", e.Name, e.Version, e.Action, e.Timestamp)
 }
 
@@ -95,13 +98,22 @@ func processRawChangelogItem(data []interface{}) pypiChangelogEntry {
 		timestamp: int64
 		action: string
 	*/
-	name := data[0].(string)
+	name, ok := data[0].(string)
+	if !ok {
+		name = ""
+	}
 	version, ok := data[1].(string)
 	if !ok {
 		version = ""
 	}
-	timestamp := time.Unix(data[2].(int64), 0)
-	action := data[3].(string)
+	unixTimestamp, ok := data[2].(int64)
+	if !ok {
+		unixTimestamp = 0
+	}
+	action, ok := data[3].(string)
+	if !ok {
+		action = ""
+	}
 
 	archiveName := ""
 	// Changelog entries corresponding to new archives being added
@@ -114,7 +126,7 @@ func processRawChangelogItem(data []interface{}) pypiChangelogEntry {
 	return pypiChangelogEntry{
 		Name:        name,
 		Version:     version,
-		Timestamp:   timestamp,
+		Timestamp:   time.Unix(unixTimestamp, 0),
 		Action:      action,
 		ArchiveName: archiveName,
 	}
