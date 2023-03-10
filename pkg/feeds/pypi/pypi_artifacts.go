@@ -15,7 +15,7 @@ const (
 )
 
 var (
-	// we care about changelog entries where the action is 'add X file <filename>'
+	// We care about changelog entries where the action is 'add X file <filename>'.
 	archiveUploadAction = regexp.MustCompile("add (.*) file (.*)")
 )
 

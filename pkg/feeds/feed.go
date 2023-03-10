@@ -50,19 +50,19 @@ func (err PackagePollError) Error() string {
 	return fmt.Sprintf("Polling for package %s returned error: %v", err.Name, err.Err)
 }
 
-// NewPackage creates a Package object without the artifact ID field populated
+// NewPackage creates a Package object without the artifact ID field populated.
 func NewPackage(created time.Time, name, version, feed string) *Package {
 	return NewArtifact(created, name, version, "", feed)
 }
 
-// NewArtifact creates a Package object with the artifact ID field populated
-func NewArtifact(created time.Time, name, version, artifactId, feed string) *Package {
+// NewArtifact creates a Package object with the artifact ID field populated.
+func NewArtifact(created time.Time, name, version, artifactID, feed string) *Package {
 	return &Package{
 		Name:        name,
 		Version:     version,
 		CreatedDate: created,
 		Type:        feed,
-		ArtifactID:  artifactId,
+		ArtifactID:  artifactID,
 		SchemaVer:   schemaVer,
 	}
 }
