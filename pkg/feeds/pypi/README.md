@@ -28,7 +28,7 @@ uploaded for a package some time after the release was made.
 
 ## Configuration
 
-No configuration; all package updates are monitored
+No configuration; all package updates are monitored. In particular, `FeedOptions.Packages` is not supported
 ```
 feeds:
 - type: pypi-v2

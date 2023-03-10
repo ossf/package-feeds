@@ -26,9 +26,9 @@
         "description": "The type of package, this being the `FeedName` of the given package feed",
         "examples": ["pypi", "npm", "crates", "goproxy"]
       },
-      "archive_name": {
+      "artifact_id": {
         "type": "string",
-        "description": "The filename of the downloadable archive for this package. No particular format is guaranteed; names may indicate platform-specific variants.",
+        "description": "Identifies a particular downloadable artifact for this package version. No particular format is guaranteed; e.g. names may indicate platform-specific variants or include commit hashes.",
         "examples": ["factor_reader-1.0.3.tar.gz", "micrograd2023-0.0.3-py3-none-any.whl", "odoo14_addon_l10n_es_aeat-14.0.3.0.2.dev1-py3-none-any.whl"]
       },
       "schema_ver": {

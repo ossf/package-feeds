@@ -37,7 +37,7 @@ type Package struct {
 	Version     string    `json:"version"`
 	CreatedDate time.Time `json:"created_date"`
 	Type        string    `json:"type"`
-	ArchiveName string    `json:"archive_name"`
+	ArtifactId  string    `json:"artifact_id"`
 	SchemaVer   string    `json:"schema_ver"`
 }
 
@@ -50,17 +50,19 @@ func (err PackagePollError) Error() string {
 	return fmt.Sprintf("Polling for package %s returned error: %v", err.Name, err.Err)
 }
 
+// NewPackage creates a Package object without the artifact ID field populated
 func NewPackage(created time.Time, name, version, feed string) *Package {
-	return NewPackageArchive(created, name, version, "", feed)
+	return NewArtifact(created, name, version, "", feed)
 }
 
-func NewPackageArchive(created time.Time, name, version, archiveName, feed string) *Package {
+// NewArtifact creates a Package object with the artifact ID field populated
+func NewArtifact(created time.Time, name, version, artifactId, feed string) *Package {
 	return &Package{
 		Name:        name,
 		Version:     version,
 		CreatedDate: created,
 		Type:        feed,
-		ArchiveName: archiveName,
+		ArtifactId:  artifactId,
 		SchemaVer:   schemaVer,
 	}
 }

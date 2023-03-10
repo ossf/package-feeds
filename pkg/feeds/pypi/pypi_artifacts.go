@@ -32,31 +32,14 @@ func NewArtifactFeed(feedOptions feeds.FeedOptions) (*ArtifactFeed, error) {
 }
 
 func (feed ArtifactFeed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
-	cutoffSeconds := cutoff.UnixNano() / 1_000_000_000
-
 	client, _ := xmlrpc.NewClient(feed.baseURL, nil)
 
-	// Raw result structure is array[array[string, string, int, string, int]]
-	// which cannot be represented in Go (struct mapping is not supported by library)
-	var result [][]any
-	if err := client.Call("changelog", []interface{}{cutoffSeconds, true}, &result); err != nil {
+	changelogEntries, err := getPyPIChangeLog(client, cutoff)
+	if err != nil {
 		return nil, []error{err}
 	}
 
-	changelogEntries := make([]pypiChangelogEntry, len(result))
-	for i, r := range result {
-		changelogEntries[i] = processRawChangelogItem(r)
-	}
-
-	var pkgs []*feeds.Package
-	for _, e := range changelogEntries {
-		if e.isArchiveUpload() {
-			pkgs = append(pkgs, feeds.NewPackageArchive(e.Timestamp, e.Name, e.Version, e.ArchiveName, ArtifactFeedName))
-		}
-
-	}
-
-	return pkgs, nil
+	return getUploadedArtifacts(changelogEntries), nil
 }
 
 func (feed ArtifactFeed) GetFeedOptions() feeds.FeedOptions {
@@ -72,7 +55,6 @@ type pypiChangelogEntry struct {
 	Timestamp   time.Time
 	Action      string
 	ArchiveName string
-	Id          int64
 }
 
 func (e pypiChangelogEntry) isArchiveUpload() bool {
@@ -80,32 +62,71 @@ func (e pypiChangelogEntry) isArchiveUpload() bool {
 }
 
 func (e pypiChangelogEntry) String() string {
-	return fmt.Sprintf("#%d %s (%s): %s ts=%s", e.Id, e.Name, e.Version, e.Action, e.Timestamp)
+	return fmt.Sprintf("%s (%s): %s ts=%s", e.Name, e.Version, e.Action, e.Timestamp)
 }
 
-func processRawChangelogItem(data []any) pypiChangelogEntry {
+// getPyPIChangeLog returns a list of PyPI changelog entries since the given timestamp
+// defined by https://warehouse.pypa.io/api-reference/xml-rpc.html#changelog-since-with-ids-false
+func getPyPIChangeLog(client *xmlrpc.Client, since time.Time) ([]pypiChangelogEntry, error) {
+	// Raw result structure is array[array[string, string|nil, int64, string (, int64 if with_ids=true) ]]
+	// which cannot be represented in Go (struct mapping is not supported by library)
+	var result [][]interface{}
+	if err := client.Call("changelog", []interface{}{since.Unix(), false}, &result); err != nil {
+		return nil, err
+	}
+
+	return processRawChangelog(result), nil
+}
+
+func processRawChangelog(apiResult [][]interface{}) []pypiChangelogEntry {
+	changelogEntries := make([]pypiChangelogEntry, len(apiResult))
+	for i, r := range apiResult {
+		changelogEntries[i] = processRawChangelogItem(r)
+	}
+	return changelogEntries
+
+}
+
+func processRawChangelogItem(data []interface{}) pypiChangelogEntry {
 	/*
-		Each item of the changelog contains the following fields
+		Each item of the changelog contains the following fields:
 		name: string
-		version: string
+		version: string (nullable)
 		timestamp: int64
 		action: string
-		id: int64
 	*/
-	entry := pypiChangelogEntry{
-		Name:      data[0].(string),
-		Version:   data[1].(string),
-		Timestamp: time.Unix(data[2].(int64), 0),
-		Action:    data[3].(string),
-		Id:        data[4].(int64),
+	name := data[0].(string)
+	version, ok := data[1].(string)
+	if !ok {
+		version = ""
 	}
+	timestamp := time.Unix(data[2].(int64), 0)
+	action := data[3].(string)
 
+	archiveName := ""
 	// Changelog entries corresponding to new archives being added
 	// have an action string that looks like 'add <archive type> file <archive name>'
-	if match := archiveUploadAction.FindStringSubmatch(entry.Action); match != nil {
+	if match := archiveUploadAction.FindStringSubmatch(action); match != nil {
 		// it's a new archive!
-		entry.ArchiveName = match[2]
+		archiveName = match[2]
 	}
 
-	return entry
+	return pypiChangelogEntry{
+		Name:        name,
+		Version:     version,
+		Timestamp:   timestamp,
+		Action:      action,
+		ArchiveName: archiveName,
+	}
+}
+
+func getUploadedArtifacts(changelogEntries []pypiChangelogEntry) []*feeds.Package {
+	var pkgs []*feeds.Package
+	for _, e := range changelogEntries {
+		if e.isArchiveUpload() {
+			pkgs = append(pkgs, feeds.NewArtifact(e.Timestamp, e.Name, e.Version, e.ArchiveName, ArtifactFeedName))
+		}
+	}
+
+	return pkgs
 }
