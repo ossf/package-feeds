@@ -14,10 +14,8 @@ const (
 	ArtifactFeedName = "pypi-artifacts"
 )
 
-var (
-	// We care about changelog entries where the action is 'add X file <filename>'.
-	archiveUploadAction = regexp.MustCompile("add (.*) file (.*)")
-)
+// We care about changelog entries where the action is 'add X file <filename>'.
+var archiveUploadAction = regexp.MustCompile("add (.*) file (.*)")
 
 type ArtifactFeed struct {
 	baseURL string
@@ -48,6 +46,7 @@ func (feed ArtifactFeed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 func (feed ArtifactFeed) GetFeedOptions() feeds.FeedOptions {
 	return feed.options
 }
+
 func (feed ArtifactFeed) GetName() string {
 	return ArtifactFeedName
 }
@@ -86,8 +85,8 @@ func processRawChangelog(apiResult [][]interface{}) []pypiChangelogEntry {
 	for i, r := range apiResult {
 		changelogEntries[i] = processRawChangelogItem(r)
 	}
-	return changelogEntries
 
+	return changelogEntries
 }
 
 func processRawChangelogItem(data []interface{}) pypiChangelogEntry {
