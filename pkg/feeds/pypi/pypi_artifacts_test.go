@@ -76,7 +76,7 @@ var testChangelogEntries = []pypiChangelogEntry{
 	{Name: "callpyfile", Version: "0.10", Timestamp: time.Unix(1678415403, 0), Action: "add source file callpyfile-0.10.tar.gz", ArchiveName: "callpyfile-0.10.tar.gz"},
 }
 
-// TestPyPIArtifactsLive is a live test of the XML-RPC call with basic sanity checks on the final output data
+// TestPyPIArtifactsLive is a live test of the XML-RPC call with basic sanity checks on the final output data.
 func TestPyPIArtifactsLive(t *testing.T) {
 	t.Parallel()
 
