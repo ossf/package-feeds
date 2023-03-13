@@ -32,9 +32,7 @@ clean: ## Clean the build directory
 
 .PHONY: go-mod
 go-mod: ## Cleanup and verify go modules
-	export GO111MODULE=on && \
-		$(GO) mod tidy && \
-		$(GO) mod verify
+	$(GO) mod tidy && $(GO) mod verify
 
 # Verification targets
 .PHONY: verify
