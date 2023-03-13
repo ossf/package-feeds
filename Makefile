@@ -1,7 +1,7 @@
 GO ?= go
 BIN := bin
 GOOS ?= $(shell uname | tr A-Z a-z)
-GOLANGCI_LINT_VERSION = v1.35.2
+GOLANGCI_LINT_VERSION = v1.51.2
 PROJECT := package-feeds
 
 .PHONY: help
