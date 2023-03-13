@@ -1,6 +1,7 @@
-# A sample Dockerfile taken from the main Cloud Run
-# documentation
-FROM golang:1.20.2-buster as builder
+# Originally modified from the main Cloud Run documentation
+
+# golang:1.20.2-buster
+FROM golang@sha256:57dbdd5c8fe24e357b15a4ed045b0b1607a99a1465b5101304ea39e11547be27 as builder
 
 # Create and change to the app directory.
 WORKDIR /app
