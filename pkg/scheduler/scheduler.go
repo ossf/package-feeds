@@ -78,17 +78,25 @@ func (s *Scheduler) Run(initialCutoff time.Duration, enableDefaultTimer bool) er
 	pollServer := NewFeedGroupsHandler(feedGroups)
 	log.Infof("Listening on port %v", s.httpPort)
 	http.Handle("/", pollServer)
-	if err := http.ListenAndServe(fmt.Sprintf(":%v", s.httpPort), nil); err != nil {
+
+	server := &http.Server{
+		Addr: fmt.Sprintf(":%v", s.httpPort),
+		// default 60s timeout used from nginx
+		// https://medium.com/a-journey-with-go/go-understand-and-mitigate-slowloris-attack-711c1b1403f6
+		ReadHeaderTimeout: 60 * time.Second,
+	}
+	if err := server.ListenAndServe(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// Prepares a map of FeedGroups indexed by their appropriate cron schedule
+// buildSchedules prepares a map of FeedGroups indexed by their appropriate cron schedule
 // The resulting map may have index "" with a FeedGroup of feeds without a schedule option configured.
-func buildSchedules(registry map[string]feeds.ScheduledFeed, pub publisher.Publisher,
-	initialCutoff time.Duration) (map[string]*FeedGroup, error) {
+//
+//nolint:lll
+func buildSchedules(registry map[string]feeds.ScheduledFeed, pub publisher.Publisher, initialCutoff time.Duration) (map[string]*FeedGroup, error) {
 	schedules := map[string]*FeedGroup{}
 	for _, feed := range registry {
 		options := feed.GetFeedOptions()

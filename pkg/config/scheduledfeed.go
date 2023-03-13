@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strconv"
 
@@ -37,7 +36,7 @@ var (
 
 // Loads a ScheduledFeedConfig struct from a yaml config file.
 func FromFile(configPath string) (*ScheduledFeedConfig, error) {
-	data, err := ioutil.ReadFile(configPath)
+	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, err
 	}

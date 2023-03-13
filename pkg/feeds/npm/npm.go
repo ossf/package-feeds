@@ -5,7 +5,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"sort"
 	"time"
@@ -86,7 +86,7 @@ func fetchPackage(baseURL, pkgTitle string) ([]*Package, error) {
 		return nil, fmt.Errorf("failed to fetch npm package version data: %w", err)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func fetchPackage(baseURL, pkgTitle string) ([]*Package, error) {
 	}
 	err = json.Unmarshal(body, &packageDetails)
 	if err != nil {
-		return nil, fmt.Errorf("%w : %v for package %s", errJSON, err, pkgTitle)
+		return nil, fmt.Errorf("%w : %w for package %s", errJSON, err, pkgTitle)
 	}
 	versions := packageDetails.Time
 
@@ -254,7 +254,7 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 }
 
 func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
-	pkgs := []*feeds.Package{}
+	var pkgs []*feeds.Package
 	var errs []error
 
 	if feed.packages == nil {
