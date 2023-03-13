@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const schemaVer = "1.0"
+const schemaVer = "1.1"
 
 var ErrNoPackagesPolled = errors.New("no packages were successfully polled")
 
@@ -37,6 +37,7 @@ type Package struct {
 	Version     string    `json:"version"`
 	CreatedDate time.Time `json:"created_date"`
 	Type        string    `json:"type"`
+	ArtifactID  string    `json:"artifact_id"`
 	SchemaVer   string    `json:"schema_ver"`
 }
 
@@ -49,12 +50,19 @@ func (err PackagePollError) Error() string {
 	return fmt.Sprintf("Polling for package %s returned error: %v", err.Name, err.Err)
 }
 
+// NewPackage creates a Package object without the artifact ID field populated.
 func NewPackage(created time.Time, name, version, feed string) *Package {
+	return NewArtifact(created, name, version, "", feed)
+}
+
+// NewArtifact creates a Package object with the artifact ID field populated.
+func NewArtifact(created time.Time, name, version, artifactID, feed string) *Package {
 	return &Package{
 		Name:        name,
 		Version:     version,
 		CreatedDate: created,
 		Type:        feed,
+		ArtifactID:  artifactID,
 		SchemaVer:   schemaVer,
 	}
 }
