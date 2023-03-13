@@ -80,12 +80,12 @@ func (h *Handler) GetFilter() Filter {
 	return h.eventFilter
 }
 
-// Checks whether an event should be dispatched under the configured
-// filter options.
+// ShouldDispatch checks whether an event should be dispatched under the
+// configured filter options.
 // Options are applied as follows:
-// 	- disabled event types are always disabled.
-//  - enabled event types are enabled
-//  - enabled components are enabled except for disabled event types.
+//   - disabled event types are always disabled.
+//   - enabled event types are enabled
+//   - enabled components are enabled except for disabled event types.
 func (f Filter) ShouldDispatch(e Event) bool {
 	dispatch := false
 	eComponent := e.GetComponent()

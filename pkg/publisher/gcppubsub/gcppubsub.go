@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"gocloud.dev/pubsub"
-
 	// Load gcp driver.
 	_ "gocloud.dev/pubsub/gcppubsub"
 )

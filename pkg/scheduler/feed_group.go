@@ -29,8 +29,8 @@ type groupResult struct {
 	pubErr       error
 }
 
-func NewFeedGroup(scheduledFeeds []feeds.ScheduledFeed,
-	pub publisher.Publisher, initialCutoff time.Duration) *FeedGroup {
+//nolint:lll
+func NewFeedGroup(scheduledFeeds []feeds.ScheduledFeed, pub publisher.Publisher, initialCutoff time.Duration) *FeedGroup {
 	return &FeedGroup{
 		feeds:     scheduledFeeds,
 		publisher: pub,

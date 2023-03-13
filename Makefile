@@ -1,7 +1,7 @@
 GO ?= go
 BIN := bin
 GOOS ?= $(shell uname | tr A-Z a-z)
-GOLANGCI_LINT_VERSION = v1.35.2
+GOLANGCI_LINT_VERSION = v1.51.2
 PROJECT := package-feeds
 
 .PHONY: help
@@ -32,9 +32,7 @@ clean: ## Clean the build directory
 
 .PHONY: go-mod
 go-mod: ## Cleanup and verify go modules
-	export GO111MODULE=on && \
-		$(GO) mod tidy && \
-		$(GO) mod verify
+	$(GO) mod tidy && $(GO) mod verify
 
 # Verification targets
 .PHONY: verify
