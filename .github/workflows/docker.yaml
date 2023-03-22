@@ -25,7 +25,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
+      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
 
       - name: Build image
         run: docker build . --file Dockerfile --tag $IMAGE_NAME

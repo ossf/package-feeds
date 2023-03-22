@@ -18,7 +18,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
+      uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@633666f66e0061ca3b725c73b2ec20cd13a8fdd1
