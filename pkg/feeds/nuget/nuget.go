@@ -111,8 +111,8 @@ func fetchCatalogPages(catalogURL string) ([]*catalogPage, error) {
 	return c.Pages, nil
 }
 
-func fetchCatalogPage(url string) ([]*catalogLeaf, error) {
-	resp, err := httpClient.Get(url)
+func fetchCatalogPage(catalogURL string) ([]*catalogLeaf, error) {
+	resp, err := httpClient.Get(catalogURL)
 	if err != nil {
 		return nil, err
 	}

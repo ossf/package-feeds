@@ -24,6 +24,7 @@ func TestNpmLatest(t *testing.T) {
 		"/QuxPackage":  quxVersionInfoResponse,
 		"/QuuxPackage": quuxVersionInfoResponse,
 	}
+
 	srv := testutils.HTTPServerMock(handlers)
 
 	feed, err := New(feeds.FeedOptions{}, events.NewNullHandler())

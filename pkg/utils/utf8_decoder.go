@@ -8,7 +8,7 @@ import (
 )
 
 // UTF8OnlyReader implements a Reader which ignores non utf-8 characters.
-// Optionally, it can also replace non-XML characters with U+25A1 (□)
+// Optionally, it can also replace non-XML characters with U+25A1 (□).
 type UTF8OnlyReader struct {
 	buffer             *bufio.Reader
 	replaceNonXMLChars bool
@@ -16,14 +16,14 @@ type UTF8OnlyReader struct {
 
 // NewUTF8OnlyReader wraps a new UTF8OnlyReader around an existing reader.
 // If replaceNonXMLChars is true, the reader will replace all invalid XML
-// characters with the unicode replacement character
+// characters with the unicode replacement character.
 func NewUTF8OnlyReader(rd io.Reader, replaceNonXMLChars bool) UTF8OnlyReader {
 	return UTF8OnlyReader{bufio.NewReader(rd), replaceNonXMLChars}
 }
 
 // Returns true iff the given rune is in the XML Character Range, as defined
 // by https://www.xml.com/axml/testaxml.htm, Section 2.2 Characters.
-// Implementation copied from xml/xml.go
+// Implementation copied from xml/xml.go.
 func isInCharacterRange(r rune) bool {
 	return r == 0x09 || r == 0x0A || r == 0x0D ||
 		r >= 0x20 && r <= 0xD7FF ||
