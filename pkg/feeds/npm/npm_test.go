@@ -251,8 +251,9 @@ func TestNpmNonXMLResponse(t *testing.T) {
 		t.Fatalf("Expected a single package but found %v packages", len(pkgs))
 	}
 
-	if pkgs[0].Title != "@artemis-software/dok-api" {
-		t.Errorf("Package name '%v' does not match expected '%v'", pkgs[0].Title, "@artemis-software/dok-api")
+	expectedTitle := "@abcdefg-software/pog-api"
+	if pkgs[0].Title != expectedTitle {
+		t.Errorf("Package name '%v' does not match expected '%v'", pkgs[0].Title, expectedTitle)
 	}
 }
 
@@ -551,8 +552,8 @@ func nonXMLResponse(w http.ResponseWriter, r *http.Request) {
 <?xml version="1.0" encoding="UTF-8"?><rss version="2.0">
 	<channel>
 		<item>
-			<title><![CDATA[@artemis-software/dok-api]]></title>
-			<description><![CDATA[OpenAPI client for @artemis-software/dok-api` + nonXMLChars + `]]></description>
+			<title><![CDATA[@abcdefg-software/pog-api]]></title>
+			<description><![CDATA[API client for @abcdefg-software/pog-api` + nonXMLChars + `]]></description>
 		</item>
 	</channel>
 </rss>
