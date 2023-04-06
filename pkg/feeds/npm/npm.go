@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
 	"time"
 
@@ -18,12 +19,18 @@ import (
 const (
 	FeedName = "npm"
 	rssPath  = "/-/rss"
+
+	// rssLimit controls how many RSS results should be returned.
+	// Can up to about 420 before the feed will consistently fail to return any data.
+	// Lower numbers will sometimes fail too. Default value if not specified is 50
+	rssLimit = 200
 )
 
 var (
 	httpClient = &http.Client{
 		Timeout: 10 * time.Second,
 	}
+
 	errJSON        = errors.New("error unmarshaling json response internally")
 	errUnpublished = errors.New("package is currently unpublished")
 )
@@ -45,11 +52,16 @@ type PackageEvent struct {
 
 // Returns a slice of PackageEvent{} structs.
 func fetchPackageEvents(baseURL string) ([]PackageEvent, error) {
-	pkgURL, err := utils.URLPathJoin(baseURL, rssPath)
+	pkgURL, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err
 	}
-	resp, err := httpClient.Get(pkgURL)
+	pkgURL = pkgURL.JoinPath(rssPath)
+	q := pkgURL.Query()
+	q.Set("limit", fmt.Sprintf("%d", rssLimit))
+	pkgURL.RawQuery = q.Encode()
+
+	resp, err := httpClient.Get(pkgURL.String())
 	if err != nil {
 		return nil, err
 	}
@@ -60,18 +72,18 @@ func fetchPackageEvents(baseURL string) ([]PackageEvent, error) {
 		return nil, fmt.Errorf("failed to fetch npm package data: %w", err)
 	}
 	rssResponse := &Response{}
-	reader := utils.NewUTF8OnlyReader(resp.Body)
-	err = xml.NewDecoder(reader).Decode(rssResponse)
-	if err != nil {
+	reader := utils.NewUTF8OnlyReader(resp.Body, true)
+	if err = xml.NewDecoder(reader).Decode(rssResponse); err != nil {
 		return nil, err
 	}
+
 	return rssResponse.PackageEvents, nil
 }
 
 // Gets the package version & corresponding created date from NPM. Returns
 // a slice of {}Package.
 func fetchPackage(baseURL, pkgTitle string) ([]*Package, error) {
-	versionURL, err := utils.URLPathJoin(baseURL, pkgTitle)
+	versionURL, err := url.JoinPath(baseURL, pkgTitle)
 	if err != nil {
 		return nil, err
 	}

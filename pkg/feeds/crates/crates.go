@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/ossf/package-feeds/pkg/events"
@@ -36,7 +37,7 @@ type Package struct {
 
 // Gets crates.io packages.
 func fetchPackages(baseURL string) ([]*Package, error) {
-	pkgURL, err := utils.URLPathJoin(baseURL, activityPath)
+	pkgURL, err := url.JoinPath(baseURL, activityPath)
 	if err != nil {
 		return nil, err
 	}

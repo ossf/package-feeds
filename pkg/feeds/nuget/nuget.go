@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/ossf/package-feeds/pkg/feeds"
@@ -57,7 +58,7 @@ type nugetPackageDetails struct {
 
 func fetchCatalogService(baseURL string) (*nugetService, error) {
 	var err error
-	catalogServiceURL, err := utils.URLPathJoin(baseURL, indexPath)
+	catalogServiceURL, err := url.JoinPath(baseURL, indexPath)
 	if err != nil {
 		return nil, err
 	}
