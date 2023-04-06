@@ -548,25 +548,11 @@ func nonUtf8Response(w http.ResponseWriter, r *http.Request) {
 func nonXMLResponse(w http.ResponseWriter, r *http.Request) {
 	nonXMLChars := "\u0002\u0010\u0014\u0016\u001b\u0000"
 	xml := `
-<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0">
 	<channel>
-		<title><![CDATA[npm recent updates]]></title>
-		<description><![CDATA[Updates to the npm package registry]]></description>
-		<link>https://www.npmjs.com/</link>
-		<generator>RSS for Node</generator>
-		<lastBuildDate>Wed, 05 Apr 2023 03:32:28 GMT</lastBuildDate>
-		<atom:link href="https://registry.npmjs.org/-/rss" rel="self" type="application/rss+xml"/>
-		<pubDate>Wed, 05 Apr 2023 03:32:28 GMT</pubDate>
-		<language><![CDATA[en]]></language>
-		<ttl>600</ttl>
 		<item>
 			<title><![CDATA[@artemis-software/dok-api]]></title>
-			<description><![CDATA[OpenAPI client for @artemis-software/dok-api` + nonXMLChars + `]]>
-			</description>
-			<link>https://npmjs.com/package/@artemis-software/dok-api</link>
-			<guid isPermaLink="true">https://npmjs.com/package/@artemis-software/dok-api</guid>
-			<dc:creator><![CDATA[minetoblend]]></dc:creator>
-			<pubDate>Mon, 03 Apr 2023 19:42:26 GMT</pubDate>
+			<description><![CDATA[OpenAPI client for @artemis-software/dok-api` + nonXMLChars + `]]></description>
 		</item>
 	</channel>
 </rss>
