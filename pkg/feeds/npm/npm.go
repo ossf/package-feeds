@@ -22,7 +22,7 @@ const (
 
 	// rssLimit controls how many RSS results should be returned.
 	// Can up to about 420 before the feed will consistently fail to return any data.
-	// Lower numbers will sometimes fail too. Default value if not specified is 50
+	// Lower numbers will sometimes fail too. Default value if not specified is 50.
 	rssLimit = 200
 )
 

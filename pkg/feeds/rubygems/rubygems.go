@@ -27,8 +27,8 @@ type Package struct {
 	CreatedDate time.Time `json:"version_created_at"`
 }
 
-func fetchPackages(url string) ([]*Package, error) {
-	resp, err := httpClient.Get(url)
+func fetchPackages(packagesURL string) ([]*Package, error) {
+	resp, err := httpClient.Get(packagesURL)
 	if err != nil {
 		return nil, err
 	}

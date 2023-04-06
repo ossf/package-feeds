@@ -547,6 +547,7 @@ func nonUtf8Response(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, testutils.UnexpectedWriteError(err), http.StatusInternalServerError)
 	}
 }
+
 func nonXMLResponse(w http.ResponseWriter, r *http.Request) {
 	nonXMLChars := "\u0002\u0010\u0014\u0016\u001b\u0000"
 	xml := `

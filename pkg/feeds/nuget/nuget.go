@@ -133,8 +133,8 @@ func fetchCatalogPage(catalogURL string) ([]*catalogLeaf, error) {
 	return page.Packages, nil
 }
 
-func fetchPackageInfo(url string) (*nugetPackageDetails, error) {
-	resp, err := httpClient.Get(url)
+func fetchPackageInfo(infoURL string) (*nugetPackageDetails, error) {
+	resp, err := httpClient.Get(infoURL)
 	if err != nil {
 		return nil, err
 	}
