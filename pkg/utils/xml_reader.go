@@ -7,24 +7,36 @@ import (
 	"unicode/utf8"
 )
 
-// UTF8OnlyReader implements a Reader which ignores non utf-8 characters.
-// Optionally, it can also replace non-XML characters with U+25A1 (□).
-type UTF8OnlyReader struct {
-	buffer             *bufio.Reader
-	replaceNonXMLChars bool
+const unicodeWhiteSquare = '\u25A1'
+
+// XMLReader implements a Reader that reads XML responses and does two things:
+// 1. Ignores non UTF-8 characters.
+// 2. If ReplacementChar is not rune(0), non-XML valid runes are replaced with that.
+type XMLReader struct {
+	buffer          *bufio.Reader
+	ReplacementChar rune
 }
 
-// NewUTF8OnlyReader wraps a new UTF8OnlyReader around an existing reader.
-// If replaceNonXMLChars is true, the reader will replace all invalid XML
-// characters with the unicode replacement character.
-func NewUTF8OnlyReader(rd io.Reader, replaceNonXMLChars bool) UTF8OnlyReader {
-	return UTF8OnlyReader{bufio.NewReader(rd), replaceNonXMLChars}
+// NewXMLReader wraps a new XMLReader around an existing reader.
+// replaceNonXMLChars is a convenience option that sets ReplacementChar
+// to the unicode white square character. This character will replace
+// all invalid XML characters found in the stream.
+func NewXMLReader(rd io.Reader, replaceNonXMLChars bool) XMLReader {
+	reader := XMLReader{buffer: bufio.NewReader(rd)}
+	if replaceNonXMLChars {
+		reader.ReplacementChar = unicodeWhiteSquare
+	}
+	return reader
+}
+
+func (reader XMLReader) replaceNonXMLChars() bool {
+	return reader.ReplacementChar != rune(0)
 }
 
 // Returns true iff the given rune is in the XML Character Range, as defined
 // by https://www.xml.com/axml/testaxml.htm, Section 2.2 Characters.
 // Implementation copied from xml/xml.go.
-func isInCharacterRange(r rune) bool {
+func isInXMLCharacterRange(r rune) bool {
 	return r == 0x09 || r == 0x0A || r == 0x0D ||
 		r >= 0x20 && r <= 0xD7FF ||
 		r >= 0xE000 && r <= 0xFFFD ||
@@ -33,7 +45,7 @@ func isInCharacterRange(r rune) bool {
 
 // Reads bytes into the byte array b whilst ignoring non utf-8 characters
 // Returns the number of bytes read and an error if one occurs.
-func (reader UTF8OnlyReader) Read(b []byte) (int, error) {
+func (reader XMLReader) Read(b []byte) (int, error) {
 	numBytesRead := 0
 	for {
 		r, runeSize, err := reader.buffer.ReadRune()
@@ -53,8 +65,8 @@ func (reader UTF8OnlyReader) Read(b []byte) (int, error) {
 			continue
 		}
 
-		if reader.replaceNonXMLChars && !isInCharacterRange(r) {
-			r = '\u25A1' // □ (symbol for missing character)
+		if reader.replaceNonXMLChars() && !isInXMLCharacterRange(r) {
+			r = reader.ReplacementChar
 			runeSize = utf8.RuneLen(r)
 		}
 

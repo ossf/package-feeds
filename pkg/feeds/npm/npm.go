@@ -73,7 +73,7 @@ func fetchPackageEvents(baseURL string) ([]PackageEvent, error) {
 	}
 
 	rssResponse := &Response{}
-	reader := utils.NewUTF8OnlyReader(resp.Body, true)
+	reader := utils.NewXMLReader(resp.Body, true)
 	if err := xml.NewDecoder(reader).Decode(rssResponse); err != nil {
 		return nil, err
 	}
