@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/ossf/package-feeds/pkg/feeds"
@@ -57,7 +58,7 @@ type nugetPackageDetails struct {
 
 func fetchCatalogService(baseURL string) (*nugetService, error) {
 	var err error
-	catalogServiceURL, err := utils.URLPathJoin(baseURL, indexPath)
+	catalogServiceURL, err := url.JoinPath(baseURL, indexPath)
 	if err != nil {
 		return nil, err
 	}
@@ -110,8 +111,8 @@ func fetchCatalogPages(catalogURL string) ([]*catalogPage, error) {
 	return c.Pages, nil
 }
 
-func fetchCatalogPage(url string) ([]*catalogLeaf, error) {
-	resp, err := httpClient.Get(url)
+func fetchCatalogPage(catalogURL string) ([]*catalogLeaf, error) {
+	resp, err := httpClient.Get(catalogURL)
 	if err != nil {
 		return nil, err
 	}
@@ -132,8 +133,8 @@ func fetchCatalogPage(url string) ([]*catalogLeaf, error) {
 	return page.Packages, nil
 }
 
-func fetchPackageInfo(url string) (*nugetPackageDetails, error) {
-	resp, err := httpClient.Get(url)
+func fetchPackageInfo(infoURL string) (*nugetPackageDetails, error) {
+	resp, err := httpClient.Get(infoURL)
 	if err != nil {
 		return nil, err
 	}

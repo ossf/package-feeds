@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
 	"time"
 
@@ -18,12 +19,18 @@ import (
 const (
 	FeedName = "npm"
 	rssPath  = "/-/rss"
+
+	// rssLimit controls how many RSS results should be returned.
+	// Can up to about 420 before the feed will consistently fail to return any data.
+	// Lower numbers will sometimes fail too. Default value if not specified is 50.
+	rssLimit = 200
 )
 
 var (
 	httpClient = &http.Client{
 		Timeout: 10 * time.Second,
 	}
+
 	errJSON        = errors.New("error unmarshaling json response internally")
 	errUnpublished = errors.New("package is currently unpublished")
 )
@@ -45,33 +52,39 @@ type PackageEvent struct {
 
 // Returns a slice of PackageEvent{} structs.
 func fetchPackageEvents(baseURL string) ([]PackageEvent, error) {
-	pkgURL, err := utils.URLPathJoin(baseURL, rssPath)
+	pkgURL, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err
 	}
-	resp, err := httpClient.Get(pkgURL)
+
+	pkgURL = pkgURL.JoinPath(rssPath)
+	q := pkgURL.Query()
+	q.Set("limit", fmt.Sprintf("%d", rssLimit))
+	pkgURL.RawQuery = q.Encode()
+
+	resp, err := httpClient.Get(pkgURL.String())
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	err = utils.CheckResponseStatus(resp)
-	if err != nil {
+	if err := utils.CheckResponseStatus(resp); err != nil {
 		return nil, fmt.Errorf("failed to fetch npm package data: %w", err)
 	}
+
 	rssResponse := &Response{}
-	reader := utils.NewUTF8OnlyReader(resp.Body)
-	err = xml.NewDecoder(reader).Decode(rssResponse)
-	if err != nil {
+	reader := utils.NewXMLReader(resp.Body, true)
+	if err := xml.NewDecoder(reader).Decode(rssResponse); err != nil {
 		return nil, err
 	}
+
 	return rssResponse.PackageEvents, nil
 }
 
 // Gets the package version & corresponding created date from NPM. Returns
 // a slice of {}Package.
 func fetchPackage(baseURL, pkgTitle string) ([]*Package, error) {
-	versionURL, err := utils.URLPathJoin(baseURL, pkgTitle)
+	versionURL, err := url.JoinPath(baseURL, pkgTitle)
 	if err != nil {
 		return nil, err
 	}
@@ -81,8 +94,7 @@ func fetchPackage(baseURL, pkgTitle string) ([]*Package, error) {
 	}
 	defer resp.Body.Close()
 
-	err = utils.CheckResponseStatus(resp)
-	if err != nil {
+	if err := utils.CheckResponseStatus(resp); err != nil {
 		return nil, fmt.Errorf("failed to fetch npm package version data: %w", err)
 	}
 
@@ -98,8 +110,8 @@ func fetchPackage(baseURL, pkgTitle string) ([]*Package, error) {
 	var packageDetails struct {
 		Time map[string]interface{} `json:"time"`
 	}
-	err = json.Unmarshal(body, &packageDetails)
-	if err != nil {
+
+	if err := json.Unmarshal(body, &packageDetails); err != nil {
 		return nil, fmt.Errorf("%w : %w for package %s", errJSON, err, pkgTitle)
 	}
 	versions := packageDetails.Time
@@ -139,12 +151,12 @@ func fetchPackage(baseURL, pkgTitle string) ([]*Package, error) {
 	return versionSlice, nil
 }
 
-func fetchAllPackages(url string) ([]*feeds.Package, []error) {
+func fetchAllPackages(registryURL string) ([]*feeds.Package, []error) {
 	pkgs := []*feeds.Package{}
 	errs := []error{}
 	packageChannel := make(chan []*Package)
 	errChannel := make(chan error)
-	packageEvents, err := fetchPackageEvents(url)
+	packageEvents, err := fetchPackageEvents(registryURL)
 	if err != nil {
 		// If we can't generate package events then return early.
 		return pkgs, append(errs, err)
@@ -158,7 +170,7 @@ func fetchAllPackages(url string) ([]*feeds.Package, []error) {
 
 	for pkgTitle, count := range uniquePackages {
 		go func(pkgTitle string, count int) {
-			pkgs, err := fetchPackage(url, pkgTitle)
+			pkgs, err := fetchPackage(registryURL, pkgTitle)
 			if err != nil {
 				if !errors.Is(err, errUnpublished) {
 					err = feeds.PackagePollError{Name: pkgTitle, Err: err}
@@ -198,7 +210,7 @@ func fetchAllPackages(url string) ([]*feeds.Package, []error) {
 	return pkgs, errs
 }
 
-func fetchCriticalPackages(url string, packages []string) ([]*feeds.Package, []error) {
+func fetchCriticalPackages(registryURL string, packages []string) ([]*feeds.Package, []error) {
 	pkgs := []*feeds.Package{}
 	errs := []error{}
 	packageChannel := make(chan []*Package)
@@ -206,7 +218,7 @@ func fetchCriticalPackages(url string, packages []string) ([]*feeds.Package, []e
 
 	for _, pkgTitle := range packages {
 		go func(pkgTitle string) {
-			pkgs, err := fetchPackage(url, pkgTitle)
+			pkgs, err := fetchPackage(registryURL, pkgTitle)
 			if err != nil {
 				if !errors.Is(err, errUnpublished) {
 					err = feeds.PackagePollError{Name: pkgTitle, Err: err}

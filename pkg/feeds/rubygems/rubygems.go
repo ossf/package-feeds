@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/ossf/package-feeds/pkg/events"
@@ -26,8 +27,8 @@ type Package struct {
 	CreatedDate time.Time `json:"version_created_at"`
 }
 
-func fetchPackages(url string) ([]*Package, error) {
-	resp, err := httpClient.Get(url)
+func fetchPackages(packagesURL string) ([]*Package, error) {
+	resp, err := httpClient.Get(packagesURL)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +69,7 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 	packages := make(map[string]*Package)
 	var errs []error
 
-	newPackagesURL, err := utils.URLPathJoin(feed.baseURL, activityPath, "latest.json")
+	newPackagesURL, err := url.JoinPath(feed.baseURL, activityPath, "latest.json")
 	if err != nil {
 		// Failure to construct a url should lead to a hard failure.
 		return nil, append(errs, err)
@@ -82,7 +83,7 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 			packages[pkg.Name] = pkg
 		}
 	}
-	updatedPackagesURL, err := utils.URLPathJoin(feed.baseURL, activityPath, "just_updated.json")
+	updatedPackagesURL, err := url.JoinPath(feed.baseURL, activityPath, "just_updated.json")
 	if err != nil {
 		// Failure to construct a url should lead to a hard failure.
 		return nil, append(errs, err)

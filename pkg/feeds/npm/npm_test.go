@@ -24,6 +24,7 @@ func TestNpmLatest(t *testing.T) {
 		"/QuxPackage":  quxVersionInfoResponse,
 		"/QuuxPackage": quuxVersionInfoResponse,
 	}
+
 	srv := testutils.HTTPServerMock(handlers)
 
 	feed, err := New(feeds.FeedOptions{}, events.NewNullHandler())
@@ -231,6 +232,29 @@ func TestNpmNonUtf8Response(t *testing.T) {
 
 	if pkgs[0].Title != "BarPackage" {
 		t.Errorf("Package name '%v' does not match expected '%v'", pkgs[0].Title, "BarPackage")
+	}
+}
+
+func TestNpmNonXMLResponse(t *testing.T) {
+	t.Parallel()
+
+	handlers := map[string]testutils.HTTPHandlerFunc{
+		rssPath: nonXMLResponse,
+	}
+	srv := testutils.HTTPServerMock(handlers)
+
+	pkgs, err := fetchPackageEvents(srv.URL)
+	if err != nil {
+		t.Fatalf("Failed to fetch packages: %v", err)
+	}
+
+	if len(pkgs) != 1 {
+		t.Fatalf("Expected a single package but found %v packages", len(pkgs))
+	}
+
+	expectedTitle := "@abcdefg-software/pog-api"
+	if pkgs[0].Title != expectedTitle {
+		t.Errorf("Package name '%v' does not match expected '%v'", pkgs[0].Title, expectedTitle)
 	}
 }
 
@@ -520,6 +544,23 @@ func nonUtf8Response(w http.ResponseWriter, r *http.Request) {
 </rss>
 `))
 	if err != nil {
+		http.Error(w, testutils.UnexpectedWriteError(err), http.StatusInternalServerError)
+	}
+}
+
+func nonXMLResponse(w http.ResponseWriter, r *http.Request) {
+	nonXMLChars := "\u0002\u0010\u0014\u0016\u001b\u0000"
+	xml := `
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0">
+	<channel>
+		<item>
+			<title><![CDATA[@abcdefg-software/pog-api]]></title>
+			<description><![CDATA[API client for @abcdefg-software/pog-api` + nonXMLChars + `]]></description>
+		</item>
+	</channel>
+</rss>
+`
+	if _, err := w.Write([]byte(xml)); err != nil {
 		http.Error(w, testutils.UnexpectedWriteError(err), http.StatusInternalServerError)
 	}
 }

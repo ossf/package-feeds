@@ -32,6 +32,11 @@ var (
 	errUnknownFeed     = errors.New("unknown feed type")
 	errUnknownPub      = errors.New("unknown publisher type")
 	errUnknownSinkType = errors.New("unknown sink type")
+
+	// feed-specific poll rate is left unspecified, so it can still be
+	// configured by the global 'poll_rate' option in the ScheduledFeedConfig YAML.
+	defaultFeedOptions    = feeds.FeedOptions{Packages: nil, PollRate: ""}
+	npmDefaultFeedOptions = feeds.FeedOptions{Packages: nil, PollRate: "2m"}
 )
 
 // Loads a ScheduledFeedConfig struct from a yaml config file.
@@ -193,13 +198,34 @@ func strictDecode(input, out interface{}) error {
 func Default() *ScheduledFeedConfig {
 	config := &ScheduledFeedConfig{
 		Feeds: []FeedConfig{
-			{Type: crates.FeedName},
-			{Type: goproxy.FeedName},
-			{Type: npm.FeedName},
-			{Type: nuget.FeedName},
-			{Type: packagist.FeedName},
-			{Type: pypi.FeedName},
-			{Type: rubygems.FeedName},
+			{
+				Type:    crates.FeedName,
+				Options: defaultFeedOptions,
+			},
+			{
+				Type:    goproxy.FeedName,
+				Options: defaultFeedOptions,
+			},
+			{
+				Type:    npm.FeedName,
+				Options: npmDefaultFeedOptions,
+			},
+			{
+				Type:    nuget.FeedName,
+				Options: defaultFeedOptions,
+			},
+			{
+				Type:    packagist.FeedName,
+				Options: defaultFeedOptions,
+			},
+			{
+				Type:    pypi.FeedName,
+				Options: defaultFeedOptions,
+			},
+			{
+				Type:    rubygems.FeedName,
+				Options: defaultFeedOptions,
+			},
 		},
 		PubConfig: PublisherConfig{
 			Type: stdout.PublisherType,

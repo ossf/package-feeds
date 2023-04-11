@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -49,7 +50,7 @@ func New(feedOptions feeds.FeedOptions) (*Feed, error) {
 }
 
 func fetchPackages(updateHost string, since time.Time) ([]actions, error) {
-	pkgURL, err := utils.URLPathJoin(updateHost, "/metadata/changes.json")
+	pkgURL, err := url.JoinPath(updateHost, "/metadata/changes.json")
 	if err != nil {
 		return nil, err
 	}

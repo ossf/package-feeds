@@ -33,7 +33,7 @@ type Package struct {
 
 func fetchPackages(baseURL string, since time.Time) ([]Package, error) {
 	var packages []Package
-	indexURL, err := utils.URLPathJoin(baseURL, indexPath)
+	indexURL, err := url.JoinPath(baseURL, indexPath)
 	if err != nil {
 		return nil, err
 	}
