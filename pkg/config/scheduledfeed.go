@@ -34,7 +34,7 @@ var (
 	errUnknownSinkType = errors.New("unknown sink type")
 
 	// feed-specific poll rate is left unspecified, so it can still be
-	// configured by the global 'poll_rate' option in the ScheduledFeedConfig YAML
+	// configured by the global 'poll_rate' option in the ScheduledFeedConfig YAML.
 	defaultFeedOptions    = feeds.FeedOptions{Packages: nil, PollRate: ""}
 	npmDefaultFeedOptions = feeds.FeedOptions{Packages: nil, PollRate: "2m"}
 )
