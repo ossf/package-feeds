@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -73,7 +74,7 @@ func (t *rfc1123Time) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
 }
 
 func fetchPackages(baseURL string) ([]*Package, error) {
-	pkgURL, err := utils.URLPathJoin(baseURL, updatesPath)
+	pkgURL, err := url.JoinPath(baseURL, updatesPath)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +90,7 @@ func fetchPackages(baseURL string) ([]*Package, error) {
 	}
 
 	rssResponse := &Response{}
-	reader := utils.NewUTF8OnlyReader(resp.Body)
+	reader := utils.NewXMLReader(resp.Body, false)
 	err = xml.NewDecoder(reader).Decode(rssResponse)
 	if err != nil {
 		return nil, err
@@ -104,7 +105,7 @@ func fetchCriticalPackages(baseURL string, packageList []string) ([]*Package, []
 	for _, pkgName := range packageList {
 		go func(pkgName string) {
 			packageDataPath := fmt.Sprintf(packagePathFormat, pkgName)
-			pkgURL, err := utils.URLPathJoin(baseURL, packageDataPath)
+			pkgURL, err := url.JoinPath(baseURL, packageDataPath)
 			if err != nil {
 				errChannel <- feeds.PackagePollError{Name: pkgName, Err: err}
 				return
@@ -123,7 +124,7 @@ func fetchCriticalPackages(baseURL string, packageList []string) ([]*Package, []
 			}
 
 			rssResponse := &Response{}
-			reader := utils.NewUTF8OnlyReader(resp.Body)
+			reader := utils.NewXMLReader(resp.Body, false)
 			err = xml.NewDecoder(reader).Decode(rssResponse)
 			if err != nil {
 				errChannel <- feeds.PackagePollError{Name: pkgName, Err: err}
