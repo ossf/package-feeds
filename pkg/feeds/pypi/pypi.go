@@ -90,7 +90,7 @@ func fetchPackages(baseURL string) ([]*Package, error) {
 	}
 
 	rssResponse := &Response{}
-	reader := utils.NewXMLReader(resp.Body, false)
+	reader := utils.NewXMLReader(resp.Body, true)
 	err = xml.NewDecoder(reader).Decode(rssResponse)
 	if err != nil {
 		return nil, err
@@ -124,7 +124,7 @@ func fetchCriticalPackages(baseURL string, packageList []string) ([]*Package, []
 			}
 
 			rssResponse := &Response{}
-			reader := utils.NewXMLReader(resp.Body, false)
+			reader := utils.NewXMLReader(resp.Body, true)
 			err = xml.NewDecoder(reader).Decode(rssResponse)
 			if err != nil {
 				errChannel <- feeds.PackagePollError{Name: pkgName, Err: err}
