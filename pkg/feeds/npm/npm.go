@@ -92,15 +92,18 @@ func fetchPackage(baseURL, pkgTitle string) ([]*Package, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	body, readErr := io.ReadAll(resp.Body)
+	closeErr := resp.Body.Close()
 
 	if err := utils.CheckResponseStatus(resp); err != nil {
 		return nil, fmt.Errorf("failed to fetch npm package version data: %w", err)
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
+	if readErr != nil {
+		return nil, readErr
+	}
+	if closeErr != nil {
+		return nil, closeErr
 	}
 
 	// We only care about the `time` field as it contains all the versions in
