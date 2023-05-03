@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -13,6 +14,10 @@ import (
 )
 
 func main() {
+	// Increase idle conns per host to increase the reuse of existing
+	// connections between requests.
+	http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = 8
+
 	configPath, useConfig := os.LookupEnv("PACKAGE_FEEDS_CONFIG_PATH")
 	var err error
 
