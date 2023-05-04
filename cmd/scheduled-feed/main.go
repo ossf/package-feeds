@@ -14,9 +14,13 @@ import (
 )
 
 func main() {
+	// Increase overall idle conns. Generally this should be greater than the
+	// -PerHost value below multiplied by the number of feeds.
+	http.DefaultTransport.(*http.Transport).MaxIdleConns = 200
 	// Increase idle conns per host to increase the reuse of existing
-	// connections between requests.
-	http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = 10
+	// connections between requests. This is configured to match the size of the
+	// worker pool inthe npm feed.
+	http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = 16
 
 	configPath, useConfig := os.LookupEnv("PACKAGE_FEEDS_CONFIG_PATH")
 	var err error
