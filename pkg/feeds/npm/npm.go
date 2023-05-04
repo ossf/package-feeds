@@ -226,40 +226,39 @@ func fetchAllPackages(registryURL string) ([]*feeds.Package, []error) {
 		}()
 	}
 
-	// Start a consumer to collect the output of the packages
-	wg.Add(1)
+	// Start a goroutine to push work to the workers.
 	go func() {
-		defer wg.Done()
-		for i := 0; i < len(uniquePackages); i++ {
-			select {
-			case npmPkgs := <-packageChannel:
-				for _, pkg := range npmPkgs {
-					feedPkg := feeds.NewPackage(pkg.CreatedDate, pkg.Title,
-						pkg.Version, FeedName)
-					pkgs = append(pkgs, feedPkg)
-				}
-			case err := <-errChannel:
-				// When polling the 'firehose' unpublished packages
-				// don't need to be logged as an error.
-				if !errors.Is(err, errUnpublished) {
-					errs = append(errs, err)
-				}
-			}
+		// Populate the worker feed.
+		for pkgTitle, count := range uniquePackages {
+			workChannel <- struct {
+				pkgTitle string
+				count    int
+			}{pkgTitle: pkgTitle, count: count}
 		}
+
+		// Close the channel to indicate that there is no more work.
+		close(workChannel)
 	}()
 
-	// Populate the worker feed.
-	for pkgTitle, count := range uniquePackages {
-		workChannel <- struct {
-			pkgTitle string
-			count    int
-		}{pkgTitle: pkgTitle, count: count}
+	// Collect all the worker.
+	for i := 0; i < len(uniquePackages); i++ {
+		select {
+		case npmPkgs := <-packageChannel:
+			for _, pkg := range npmPkgs {
+				feedPkg := feeds.NewPackage(pkg.CreatedDate, pkg.Title,
+					pkg.Version, FeedName)
+				pkgs = append(pkgs, feedPkg)
+			}
+		case err := <-errChannel:
+			// When polling the 'firehose' unpublished packages
+			// don't need to be logged as an error.
+			if !errors.Is(err, errUnpublished) {
+				errs = append(errs, err)
+			}
+		}
 	}
 
-	// Close the channel to indicate that there is no more work.
-	close(workChannel)
-
-	// Wait for the goroutines to all complete.
+	// Ensure the goroutines are all complete.
 	wg.Wait()
 
 	return pkgs, errs
