@@ -184,42 +184,46 @@ func fetchAllPackages(registryURL string) ([]*feeds.Package, []error) {
 		count    int
 	})
 
-	var wg sync.WaitGroup
-
 	// Define the fetcher function that grabs the repos from NPM
-	fetcherFn := func() {
-		defer wg.Done()
-		for {
-			w, more := <-workChannel
-			if !more {
-				// If we have no more work then return.
-				return
+	fetcherFn := func(pkgTitle string, count int) {
+		pkgs, err := fetchPackage(registryURL, pkgTitle)
+		if err != nil {
+			if !errors.Is(err, errUnpublished) {
+				err = feeds.PackagePollError{Name: pkgTitle, Err: err}
 			}
-			pkgs, err := fetchPackage(registryURL, w.pkgTitle)
-			if err != nil {
-				if !errors.Is(err, errUnpublished) {
-					err = feeds.PackagePollError{Name: w.pkgTitle, Err: err}
-				}
-				errChannel <- err
-				continue
-			}
-			// Apply count slice, guard against a given events corresponding
-			// version entry being unpublished by the time the specific
-			// endpoint has been processed. This seemingly happens silently
-			// without being recorded in the json. An `event` could be logged
-			// here.
-			if len(pkgs) > w.count {
-				packageChannel <- pkgs[:w.count]
-			} else {
-				packageChannel <- pkgs
-			}
+			errChannel <- err
+			return
+		}
+		// Apply count slice, guard against a given events corresponding
+		// version entry being unpublished by the time the specific
+		// endpoint has been processed. This seemingly happens silently
+		// without being recorded in the json. An `event` could be logged
+		// here.
+		if len(pkgs) > count {
+			packageChannel <- pkgs[:count]
+		} else {
+			packageChannel <- pkgs
 		}
 	}
+
+	// The WaitGroup is used to ensure all the goroutines are complete before
+	// returning.
+	var wg sync.WaitGroup
 
 	// Start the fetcher workers.
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
-		go fetcherFn()
+		go func() {
+			defer wg.Done()
+			for {
+				w, more := <-workChannel
+				if !more {
+					// If we have no more work then return.
+					return
+				}
+				fetcherFn(w.pkgTitle, w.count)
+			}
+		}()
 	}
 
 	// Start a consumer to collect the output of the packages
