@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/ossf/package-feeds/pkg/events"
@@ -24,6 +25,10 @@ const (
 	// Can up to about 420 before the feed will consistently fail to return any data.
 	// Lower numbers will sometimes fail too. Default value if not specified is 50.
 	rssLimit = 200
+
+	// workers controls the number of concurrent workers used to fetch packages
+	// simulataneously during fetchAllPackages.
+	workers = 10
 )
 
 var (
@@ -171,29 +176,71 @@ func fetchAllPackages(registryURL string) ([]*feeds.Package, []error) {
 		uniquePackages[pkg.Title]++
 	}
 
-	for pkgTitle, count := range uniquePackages {
-		go func(pkgTitle string, count int) {
-			pkgs, err := fetchPackage(registryURL, pkgTitle)
-			if err != nil {
-				if !errors.Is(err, errUnpublished) {
-					err = feeds.PackagePollError{Name: pkgTitle, Err: err}
-				}
-				errChannel <- err
-				return
+	// Start a collection of workers to fetch all the packages.
+	// This limits the number of concurrent requests to avoid flooding the NPM
+	// registry API with too many simultaneous requests.
+	workChannel := make(chan struct {
+		pkgTitle string
+		count    int
+	})
+
+	// Define the fetcher function that grabs the repos from NPM
+	fetcherFn := func(pkgTitle string, count int) {
+		pkgs, err := fetchPackage(registryURL, pkgTitle)
+		if err != nil {
+			if !errors.Is(err, errUnpublished) {
+				err = feeds.PackagePollError{Name: pkgTitle, Err: err}
 			}
-			// Apply count slice, guard against a given events corresponding
-			// version entry being unpublished by the time the specific
-			// endpoint has been processed. This seemingly happens silently
-			// without being recorded in the json. An `event` could be logged
-			// here.
-			if len(pkgs) > count {
-				packageChannel <- pkgs[:count]
-			} else {
-				packageChannel <- pkgs
-			}
-		}(pkgTitle, count)
+			errChannel <- err
+			return
+		}
+		// Apply count slice, guard against a given events corresponding
+		// version entry being unpublished by the time the specific
+		// endpoint has been processed. This seemingly happens silently
+		// without being recorded in the json. An `event` could be logged
+		// here.
+		if len(pkgs) > count {
+			packageChannel <- pkgs[:count]
+		} else {
+			packageChannel <- pkgs
+		}
 	}
 
+	// The WaitGroup is used to ensure all the goroutines are complete before
+	// returning.
+	var wg sync.WaitGroup
+
+	// Start the fetcher workers.
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				w, more := <-workChannel
+				if !more {
+					// If we have no more work then return.
+					return
+				}
+				fetcherFn(w.pkgTitle, w.count)
+			}
+		}()
+	}
+
+	// Start a goroutine to push work to the workers.
+	go func() {
+		// Populate the worker feed.
+		for pkgTitle, count := range uniquePackages {
+			workChannel <- struct {
+				pkgTitle string
+				count    int
+			}{pkgTitle: pkgTitle, count: count}
+		}
+
+		// Close the channel to indicate that there is no more work.
+		close(workChannel)
+	}()
+
+	// Collect all the worker.
 	for i := 0; i < len(uniquePackages); i++ {
 		select {
 		case npmPkgs := <-packageChannel:
@@ -210,6 +257,10 @@ func fetchAllPackages(registryURL string) ([]*feeds.Package, []error) {
 			}
 		}
 	}
+
+	// Ensure the goroutines are all complete.
+	wg.Wait()
+
 	return pkgs, errs
 }
 
