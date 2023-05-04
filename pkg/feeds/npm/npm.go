@@ -33,7 +33,7 @@ const (
 
 var (
 	httpClient = &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: 30 * time.Second,
 	}
 
 	errJSON        = errors.New("error unmarshaling json response internally")
