@@ -28,12 +28,12 @@ const (
 
 	// workers controls the number of concurrent workers used to fetch packages
 	// simulataneously during fetchAllPackages.
-	workers = 10
+	workers = 16
 )
 
 var (
 	httpClient = &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: 45 * time.Second,
 	}
 
 	errJSON        = errors.New("error unmarshaling json response internally")
