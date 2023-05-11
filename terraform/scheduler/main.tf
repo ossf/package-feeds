@@ -27,7 +27,7 @@ resource "google_cloud_run_service" "run-scheduler" {
         }
         resources {
           limits = {
-            memory = "512Mi"
+            memory = "2Gi"
             cpu = "1000m"
           }
         }
