@@ -204,8 +204,6 @@ func fetchAllPackages(registryURL string) ([]*feeds.Package, []error) {
 				packageChannel <- pkgs
 			}
 		}(pkgTitle, count)
-		// Pause briefly between each request so all the requests don't arrive at once.
-		time.Sleep(50 * time.Millisecond)
 	}
 
 	// Collect all the worker.
