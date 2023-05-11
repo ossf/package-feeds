@@ -29,7 +29,13 @@ const (
 	// maxJitterMillis is the upper bound of random jitter introcude while
 	// issuing requests to NPM. Random jitter will be generated between 0 and
 	// maxJitterMillis.
-	maxJitterMillis = 1000
+	maxJitterMillis = 10000
+
+	// minJitterThreshold is the minimum number of packages that need to be fetched
+	// before the jitter is applied. This allows a number of packages to
+	// fetched without a delay. The number is chosen somewhat arbitrarily, but
+	// is 10% of the rssLimit above.
+	minJitterThreshold = 20
 )
 
 var (
@@ -179,11 +185,14 @@ func fetchAllPackages(registryURL string) ([]*feeds.Package, []error) {
 		uniquePackages[pkg.Title]++
 	}
 
+	applyJitter := len(uniquePackages) > minJitterThreshold
 	for pkgTitle, count := range uniquePackages {
 		go func(pkgTitle string, count int) {
-			// Before requesting, wait, so all the requests don't arrive at once.
-			jitter := time.Duration(rand.Intn(maxJitterMillis)) * time.Millisecond //nolint:gosec
-			time.Sleep(jitter)
+			if applyJitter {
+				// Before requesting, wait, so all the requests don't arrive at once.
+				jitter := time.Duration(rand.Intn(maxJitterMillis)) * time.Millisecond //nolint:gosec
+				time.Sleep(jitter)
+			}
 
 			pkgs, err := fetchPackage(registryURL, pkgTitle)
 			if err != nil {
