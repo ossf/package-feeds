@@ -16,6 +16,7 @@ resource "google_cloud_scheduler_job" "trigger-ecosystem-scheduler" {
 resource "google_cloud_run_service" "run-scheduler" {
   name     = "scheduled-feeds-srv"
   location = var.region
+  autogenerate_revision_name = true
 
   template {
     spec {
