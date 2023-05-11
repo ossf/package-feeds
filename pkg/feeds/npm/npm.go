@@ -35,7 +35,7 @@ const (
 var (
 	httpClient = &http.Client{
 		// Timeout is large to allow for large response bodies multiplexed over
-		// HTTP2 to download simulatenously.
+		// HTTP2 to download simultaneously.
 		Timeout: 90 * time.Second,
 	}
 
@@ -182,7 +182,7 @@ func fetchAllPackages(registryURL string) ([]*feeds.Package, []error) {
 	for pkgTitle, count := range uniquePackages {
 		go func(pkgTitle string, count int) {
 			// Before requesting, wait, so all the requests don't arrive at once.
-			jitter := time.Duration(rand.Intn(maxJitterMillis)) * time.Millisecond
+			jitter := time.Duration(rand.Intn(maxJitterMillis)) * time.Millisecond //nolint:gosec
 			time.Sleep(jitter)
 
 			pkgs, err := fetchPackage(registryURL, pkgTitle)
