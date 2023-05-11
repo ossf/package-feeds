@@ -185,10 +185,10 @@ func fetchAllPackages(registryURL string) ([]*feeds.Package, []error) {
 		uniquePackages[pkg.Title]++
 	}
 
-	n := 0
+	applyJitter := len(uniquePackages) > minJitterThreshold
 	for pkgTitle, count := range uniquePackages {
-		go func(id int, pkgTitle string, count int) {
-			if id > minJitterThreshold {
+		go func(pkgTitle string, count int) {
+			if applyJitter {
 				// Before requesting, wait, so all the requests don't arrive at once.
 				jitter := time.Duration(rand.Intn(maxJitterMillis)) * time.Millisecond //nolint:gosec
 				time.Sleep(jitter)
@@ -212,8 +212,7 @@ func fetchAllPackages(registryURL string) ([]*feeds.Package, []error) {
 			} else {
 				packageChannel <- pkgs
 			}
-		}(n, pkgTitle, count)
-		n++
+		}(pkgTitle, count)
 	}
 
 	// Collect all the worker.
