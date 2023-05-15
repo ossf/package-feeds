@@ -28,8 +28,9 @@ const (
 
 	// maxJitterMillis is the upper bound of random jitter introcude while
 	// issuing requests to NPM. Random jitter will be generated between 0 and
-	// maxJitterMillis.
-	maxJitterMillis = 10000
+	// maxJitterMillis. maxJitterMillis + the http timeout below are chosen to be
+	// no more than 120 seconds.
+	maxJitterMillis = 30000
 
 	// minJitterThreshold is the minimum number of packages that need to be fetched
 	// before the jitter is applied. This allows a number of packages to
