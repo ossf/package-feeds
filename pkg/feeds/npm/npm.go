@@ -33,8 +33,6 @@ const (
 )
 
 var (
-	httpClient *http.Client
-
 	errJSON        = errors.New("error unmarshaling json response internally")
 	errUnpublished = errors.New("package is currently unpublished")
 )
@@ -54,27 +52,8 @@ type PackageEvent struct {
 	Title string `xml:"title"`
 }
 
-func init() {
-	tr := http.DefaultTransport.(*http.Transport).Clone()
-	// Disable HTTP2. HTTP2 flow control hurts performance for large concurrent
-	// responses.
-	tr.ForceAttemptHTTP2 = false
-	tr.TLSNextProto = make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
-	tr.TLSClientConfig.NextProtos = []string{"http/1.1"}
-
-	tr.MaxIdleConns = 100
-	tr.MaxIdleConnsPerHost = fetchWorkers
-	tr.MaxConnsPerHost = fetchWorkers
-	tr.IdleConnTimeout = 0 // No limit, try and reuse the idle connecitons.
-
-	httpClient = &http.Client{
-		Transport: tr,
-		Timeout:   30 * time.Second,
-	}
-}
-
 // Returns a slice of PackageEvent{} structs.
-func fetchPackageEvents(baseURL string) ([]PackageEvent, error) {
+func fetchPackageEvents(httpClient *http.Client, baseURL string) ([]PackageEvent, error) {
 	pkgURL, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err
@@ -106,7 +85,7 @@ func fetchPackageEvents(baseURL string) ([]PackageEvent, error) {
 
 // Gets the package version & corresponding created date from NPM. Returns
 // a slice of {}Package.
-func fetchPackage(baseURL, pkgTitle string) ([]*Package, error) {
+func fetchPackage(httpClient *http.Client, baseURL, pkgTitle string) ([]*Package, error) {
 	versionURL, err := url.JoinPath(baseURL, pkgTitle)
 	if err != nil {
 		return nil, err
@@ -177,12 +156,12 @@ func fetchPackage(baseURL, pkgTitle string) ([]*Package, error) {
 	return versionSlice, nil
 }
 
-func fetchAllPackages(registryURL string) ([]*feeds.Package, []error) {
+func fetchAllPackages(httpClient *http.Client, registryURL string) ([]*feeds.Package, []error) {
 	pkgs := []*feeds.Package{}
 	errs := []error{}
 	packageChannel := make(chan []*Package)
 	errChannel := make(chan error)
-	packageEvents, err := fetchPackageEvents(registryURL)
+	packageEvents, err := fetchPackageEvents(httpClient, registryURL)
 	if err != nil {
 		// If we can't generate package events then return early.
 		return pkgs, append(errs, err)
@@ -204,7 +183,7 @@ func fetchAllPackages(registryURL string) ([]*feeds.Package, []error) {
 
 	// Define the fetcher function that grabs the repos from NPM
 	fetcherFn := func(pkgTitle string, count int) {
-		pkgs, err := fetchPackage(registryURL, pkgTitle)
+		pkgs, err := fetchPackage(httpClient, registryURL, pkgTitle)
 		if err != nil {
 			if !errors.Is(err, errUnpublished) {
 				err = feeds.PackagePollError{Name: pkgTitle, Err: err}
@@ -281,7 +260,7 @@ func fetchAllPackages(registryURL string) ([]*feeds.Package, []error) {
 	return pkgs, errs
 }
 
-func fetchCriticalPackages(registryURL string, packages []string) ([]*feeds.Package, []error) {
+func fetchCriticalPackages(httpClient *http.Client, registryURL string, packages []string) ([]*feeds.Package, []error) {
 	pkgs := []*feeds.Package{}
 	errs := []error{}
 	packageChannel := make(chan []*Package)
@@ -289,7 +268,7 @@ func fetchCriticalPackages(registryURL string, packages []string) ([]*feeds.Pack
 
 	for _, pkgTitle := range packages {
 		go func(pkgTitle string) {
-			pkgs, err := fetchPackage(registryURL, pkgTitle)
+			pkgs, err := fetchPackage(httpClient, registryURL, pkgTitle)
 			if err != nil {
 				if !errors.Is(err, errUnpublished) {
 					err = feeds.PackagePollError{Name: pkgTitle, Err: err}
@@ -325,14 +304,31 @@ type Feed struct {
 	lossyFeedAlerter *feeds.LossyFeedAlerter
 	baseURL          string
 	options          feeds.FeedOptions
+	client           *http.Client
 }
 
 func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, error) {
+	tr := http.DefaultTransport.(*http.Transport).Clone()
+	// Disable HTTP2. HTTP2 flow control hurts performance for large concurrent
+	// responses.
+	tr.ForceAttemptHTTP2 = false
+	tr.TLSNextProto = make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
+	tr.TLSClientConfig.NextProtos = []string{"http/1.1"}
+
+	tr.MaxIdleConns = 100
+	tr.MaxIdleConnsPerHost = fetchWorkers
+	tr.MaxConnsPerHost = fetchWorkers
+	tr.IdleConnTimeout = 0 // No limit, try and reuse the idle connecitons.
+
 	return &Feed{
 		packages:         feedOptions.Packages,
 		lossyFeedAlerter: feeds.NewLossyFeedAlerter(eventHandler),
 		baseURL:          "https://registry.npmjs.org/",
 		options:          feedOptions,
+		client: &http.Client{
+			Transport: tr,
+			Timeout:   30 * time.Second,
+		},
 	}, nil
 }
 
@@ -341,9 +337,9 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 	var errs []error
 
 	if feed.packages == nil {
-		pkgs, errs = fetchAllPackages(feed.baseURL)
+		pkgs, errs = fetchAllPackages(feed.client, feed.baseURL)
 	} else {
-		pkgs, errs = fetchCriticalPackages(feed.baseURL, *feed.packages)
+		pkgs, errs = fetchCriticalPackages(feed.client, feed.baseURL, *feed.packages)
 	}
 
 	if len(pkgs) == 0 {
