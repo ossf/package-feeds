@@ -1,15 +1,16 @@
 package npm
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/ossf/package-feeds/pkg/events"
@@ -26,25 +27,13 @@ const (
 	// Lower numbers will sometimes fail too. Default value if not specified is 50.
 	rssLimit = 200
 
-	// maxJitterMillis is the upper bound of random jitter introcude while
-	// issuing requests to NPM. Random jitter will be generated between 0 and
-	// maxJitterMillis. maxJitterMillis + the http timeout below are chosen to be
-	// no more than 120 seconds.
-	maxJitterMillis = 30000
-
-	// minJitterThreshold is the minimum number of packages that need to be fetched
-	// before the jitter is applied. This allows a number of packages to
-	// fetched without a delay. The number is chosen somewhat arbitrarily, but
-	// is 10% of the rssLimit above.
-	minJitterThreshold = 20
+	// fetchWorkers defines the totoal number of concurrent HTTP1 requests to
+	// allow at any one time.
+	fetchWorkers = 8
 )
 
 var (
-	httpClient = &http.Client{
-		// Timeout is large to allow for large response bodies multiplexed over
-		// HTTP2 to download simultaneously.
-		Timeout: 90 * time.Second,
-	}
+	httpClient *http.Client
 
 	errJSON        = errors.New("error unmarshaling json response internally")
 	errUnpublished = errors.New("package is currently unpublished")
@@ -63,6 +52,25 @@ type Package struct {
 
 type PackageEvent struct {
 	Title string `xml:"title"`
+}
+
+func init() {
+	tr := http.DefaultTransport.(*http.Transport).Clone()
+	// Disable HTTP2. HTTP2 flow control hurts performance for large concurrent
+	// responses.
+	tr.ForceAttemptHTTP2 = false
+	tr.TLSNextProto = make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
+	tr.TLSClientConfig.NextProtos = []string{"http/1.1"}
+
+	tr.MaxIdleConns = 100
+	tr.MaxIdleConnsPerHost = fetchWorkers
+	tr.MaxConnsPerHost = fetchWorkers
+	tr.IdleConnTimeout = 0 // No limit, try and reuse the idle connecitons.
+
+	httpClient = &http.Client{
+		Transport: tr,
+		Timeout:   30 * time.Second,
+	}
 }
 
 // Returns a slice of PackageEvent{} structs.
@@ -186,37 +194,71 @@ func fetchAllPackages(registryURL string) ([]*feeds.Package, []error) {
 		uniquePackages[pkg.Title]++
 	}
 
-	applyJitter := len(uniquePackages) > minJitterThreshold
-	for pkgTitle, count := range uniquePackages {
-		go func(pkgTitle string, count int) {
-			if applyJitter {
-				// Before requesting, wait, so all the requests don't arrive at once.
-				jitter := time.Duration(rand.Intn(maxJitterMillis)) * time.Millisecond //nolint:gosec
-				time.Sleep(jitter)
-			}
+	// Start a collection of workers to fetch all the packages.
+	// This limits the number of concurrent requests to avoid flooding the NPM
+	// registry API with too many simultaneous requests.
+	workChannel := make(chan struct {
+		pkgTitle string
+		count    int
+	})
 
-			pkgs, err := fetchPackage(registryURL, pkgTitle)
-			if err != nil {
-				if !errors.Is(err, errUnpublished) {
-					err = feeds.PackagePollError{Name: pkgTitle, Err: err}
-				}
-				errChannel <- err
-				return
+	// Define the fetcher function that grabs the repos from NPM
+	fetcherFn := func(pkgTitle string, count int) {
+		pkgs, err := fetchPackage(registryURL, pkgTitle)
+		if err != nil {
+			if !errors.Is(err, errUnpublished) {
+				err = feeds.PackagePollError{Name: pkgTitle, Err: err}
 			}
-			// Apply count slice, guard against a given events corresponding
-			// version entry being unpublished by the time the specific
-			// endpoint has been processed. This seemingly happens silently
-			// without being recorded in the json. An `event` could be logged
-			// here.
-			if len(pkgs) > count {
-				packageChannel <- pkgs[:count]
-			} else {
-				packageChannel <- pkgs
-			}
-		}(pkgTitle, count)
+			errChannel <- err
+			return
+		}
+		// Apply count slice, guard against a given events corresponding
+		// version entry being unpublished by the time the specific
+		// endpoint has been processed. This seemingly happens silently
+		// without being recorded in the json. An `event` could be logged
+		// here.
+		if len(pkgs) > count {
+			packageChannel <- pkgs[:count]
+		} else {
+			packageChannel <- pkgs
+		}
 	}
 
-	// Collect all the worker.
+	// The WaitGroup is used to ensure all the goroutines are complete before
+	// returning.
+	var wg sync.WaitGroup
+
+	// Start the fetcher workers.
+	for i := 0; i < fetchWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				w, more := <-workChannel
+				if !more {
+					// If we have no more work then return.
+					return
+				}
+				fetcherFn(w.pkgTitle, w.count)
+			}
+		}()
+	}
+
+	// Start a goroutine to push work to the workers.
+	go func() {
+		// Populate the worker feed.
+		for pkgTitle, count := range uniquePackages {
+			workChannel <- struct {
+				pkgTitle string
+				count    int
+			}{pkgTitle: pkgTitle, count: count}
+		}
+
+		// Close the channel to indicate that there is no more work.
+		close(workChannel)
+	}()
+
+	// Collect all the work.
 	for i := 0; i < len(uniquePackages); i++ {
 		select {
 		case npmPkgs := <-packageChannel:
@@ -233,6 +275,8 @@ func fetchAllPackages(registryURL string) ([]*feeds.Package, []error) {
 			}
 		}
 	}
+
+	wg.Wait()
 
 	return pkgs, errs
 }
