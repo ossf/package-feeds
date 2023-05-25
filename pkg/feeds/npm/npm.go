@@ -327,7 +327,7 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 		options:          feedOptions,
 		client: &http.Client{
 			Transport: tr,
-			Timeout:   30 * time.Second,
+			Timeout:   45 * time.Second,
 		},
 	}, nil
 }
