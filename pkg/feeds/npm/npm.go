@@ -29,7 +29,7 @@ const (
 
 	// fetchWorkers defines the totoal number of concurrent HTTP1 requests to
 	// allow at any one time.
-	fetchWorkers = 8
+	fetchWorkers = 10
 )
 
 var (
