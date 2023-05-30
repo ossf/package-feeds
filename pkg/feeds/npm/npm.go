@@ -29,7 +29,7 @@ const (
 
 	// fetchWorkers defines the totoal number of concurrent HTTP1 requests to
 	// allow at any one time.
-	fetchWorkers = 8
+	fetchWorkers = 10
 )
 
 var (
@@ -327,7 +327,7 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 		options:          feedOptions,
 		client: &http.Client{
 			Transport: tr,
-			Timeout:   30 * time.Second,
+			Timeout:   45 * time.Second,
 		},
 	}, nil
 }
