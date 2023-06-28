@@ -35,7 +35,7 @@ const (
 
 	// cacheEntryLimit defines how many responses to store in the LRU cache.
 	// The value should be larger than rssLimit to ensure all rss entries can
-	// be convered by a cache entry.
+	// be covered by a cache entry.
 	cacheEntryLimit = 500
 )
 
