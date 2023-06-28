@@ -63,4 +63,5 @@ jobs:
           scheduled-feeds-srv \
           --platform managed \
           --region us-central1 \
+          --max-instances=1 \
           --image gcr.io/${{ secrets.GOOGLE_PROJECT_ID }}/scheduled-feeds;
