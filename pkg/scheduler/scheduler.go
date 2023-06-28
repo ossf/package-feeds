@@ -65,7 +65,7 @@ func (s *Scheduler) Run(initialCutoff time.Duration, enableDefaultTimer bool) er
 			if !enableDefaultTimer {
 				// Without the default timer enabled, undefined schedules depend on HTTP request polling.
 				// This avoids race conditions where the cron based request is in flight when an HTTP
-				// request is made.
+				// request is made (or visa-versa).
 				feedGroups = append(feedGroups, feedGroup)
 				pollFeedNames = append(pollFeedNames, feedNames...)
 				continue
