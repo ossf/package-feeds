@@ -3,6 +3,7 @@ module github.com/ossf/package-feeds
 go 1.20
 
 require (
+	github.com/hashicorp/golang-lru/v2 v2.0.4
 	github.com/kolo/xmlrpc v0.0.0-20220921171641-a4b6fa1dd06b
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/robfig/cron/v3 v3.0.1
@@ -34,7 +35,6 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
-	github.com/hashicorp/golang-lru/v2 v2.0.4 // indirect
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
 	github.com/jcmturner/dnsutils/v2 v2.0.0 // indirect
 	github.com/jcmturner/gofork v1.7.6 // indirect
