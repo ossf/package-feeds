@@ -46,7 +46,8 @@ func (s *Scheduler) Run(initialCutoff time.Duration, enableDefaultTimer bool) er
 	if err != nil {
 		return err
 	}
-	feedGroups := []*FeedGroup{}
+	var feedGroups []*FeedGroup
+	var pollFeedNames []string
 
 	// Configure cron job for scheduled polling.
 	cronJob := cron.New(
@@ -55,13 +56,21 @@ func (s *Scheduler) Run(initialCutoff time.Duration, enableDefaultTimer bool) er
 			cron.SecondOptional|cron.Minute|cron.Hour|cron.Dom|cron.Month|cron.Dow|cron.Descriptor,
 		)))
 	for schedule, feedGroup := range schedules {
-		feedGroups = append(feedGroups, feedGroup)
+		var feedNames []string
+		for _, f := range feedGroup.feeds {
+			feedNames = append(feedNames, f.GetName())
+		}
 
-		// Undefined schedules will follow the default schedule, if the default timer is enabled.
 		if schedule == "" {
 			if !enableDefaultTimer {
+				// Without the default timer enabled, undefined schedules depend on HTTP request polling.
+				// This avoids race conditions where the cron based request is in flight when an HTTP
+				// request is made (or visa-versa).
+				feedGroups = append(feedGroups, feedGroup)
+				pollFeedNames = append(pollFeedNames, feedNames...)
 				continue
 			}
+			// Undefined schedules will follow the default schedule, if the default timer is enabled.
 			schedule = defaultSchedule
 		}
 
@@ -70,17 +79,13 @@ func (s *Scheduler) Run(initialCutoff time.Duration, enableDefaultTimer bool) er
 			return fmt.Errorf("failed to parse schedule `%s`: %w", schedule, err)
 		}
 
-		feedNames := []string{}
-		for _, f := range feedGroup.feeds {
-			feedNames = append(feedNames, f.GetName())
-		}
 		log.Printf("Running a timer for %s with schedule %s", strings.Join(feedNames, ", "), schedule)
 	}
 	cronJob.Start()
 
 	// Start http server for polling via HTTP requests
 	pollServer := NewFeedGroupsHandler(feedGroups)
-	log.Infof("Listening on port %v", s.httpPort)
+	log.Infof("Listening on port %v for %s", s.httpPort, strings.Join(pollFeedNames, ", "))
 	http.Handle("/", pollServer)
 
 	server := &http.Server{
