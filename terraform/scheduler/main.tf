@@ -19,9 +19,9 @@ resource "google_cloud_run_service" "run-scheduler" {
   autogenerate_revision_name = true
 
   metadata {
-    annotations {
-      "autoscaling.knative.dev/maxScale" = 1
-      "autoscaling.knative.dev/minScale" = 1
+    annotations = {
+      "autoscaling.knative.dev/maxScale" = "1"
+      "autoscaling.knative.dev/minScale" = "1"
     }
   }
   template {
