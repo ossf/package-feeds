@@ -18,8 +18,15 @@ resource "google_cloud_run_service" "run-scheduler" {
   location = var.region
   autogenerate_revision_name = true
 
+  metadata {
+    annotations {
+      "autoscaling.knative.dev/maxScale" = 1
+      "autoscaling.knative.dev/minScale" = 1
+    }
+  }
   template {
     spec {
+      container_concurrency = 1
       containers {
         image = "gcr.io/${var.project}/scheduled-feeds"
         env {
