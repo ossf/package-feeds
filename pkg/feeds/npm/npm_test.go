@@ -221,7 +221,7 @@ func TestNpmNonUtf8Response(t *testing.T) {
 	}
 	srv := testutils.HTTPServerMock(handlers)
 
-	pkgs, err := fetchPackageEvents(http.DefaultClient, srv.URL)
+	pkgs, err := fetchPackageEvents(Feed{client: http.DefaultClient, baseURL: srv.URL})
 	if err != nil {
 		t.Fatalf("Failed to fetch packages: %v", err)
 	}
@@ -243,7 +243,7 @@ func TestNpmNonXMLResponse(t *testing.T) {
 	}
 	srv := testutils.HTTPServerMock(handlers)
 
-	pkgs, err := fetchPackageEvents(http.DefaultClient, srv.URL)
+	pkgs, err := fetchPackageEvents(Feed{client: http.DefaultClient, baseURL: srv.URL})
 	if err != nil {
 		t.Fatalf("Failed to fetch packages: %v", err)
 	}

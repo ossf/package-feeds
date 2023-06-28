@@ -14,3 +14,7 @@ func CheckResponseStatus(res *http.Response) error {
 	}
 	return nil
 }
+
+func IsNotModified(res *http.Response) bool {
+	return res.StatusCode == http.StatusNotModified
+}
