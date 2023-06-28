@@ -59,8 +59,18 @@ type PackageEvent struct {
 	Title string `xml:"title"`
 }
 
+// cacheEntry is stored in an LRU cache for a given URL key. The cache is used
+// only by the fetchPackage function to avoid needlessly requesting the unchanged
+// content repeatedly.
 type cacheEntry struct {
-	ETag     string
+	// ETag stores the value provided in the "Etag" header in a 200 OK response
+	// returned for the URL key. The ETag is used in requests in the
+	// "If-None-Match" header to only get the request body if the ETag no longer
+	// matches.
+	ETag string
+
+	// Versions stores the data retrieved and returned by the fetchPackage
+	// function below.
 	Versions []*Package
 }
 
@@ -110,6 +120,8 @@ func fetchPackage(feed Feed, pkgTitle string) ([]*Package, error) {
 
 	e, inCache := feed.cache.Get(versionURL)
 	if inCache && e != nil {
+		// We found a cache entry, so do a conditional request that only returns
+		// content if the etag has changed.
 		req.Header.Add("If-None-Match", e.ETag)
 	}
 
@@ -121,6 +133,8 @@ func fetchPackage(feed Feed, pkgTitle string) ([]*Package, error) {
 	closeErr := resp.Body.Close()
 
 	if inCache && e != nil && utils.IsNotModified(resp) {
+		// We have a cached value and a 304 was returned, which means we can use
+		// our cached value as the result of this function call.
 		return e.Versions, nil
 	}
 	if err := utils.CheckResponseStatus(resp); err != nil {
@@ -181,6 +195,9 @@ func fetchPackage(feed Feed, pkgTitle string) ([]*Package, error) {
 	})
 
 	if etag != "" {
+		// Add the result to the cache, only if the the etag is actually present.
+		// An etag should be present, but a server issue may result in the etag
+		// not being included.
 		feed.cache.Add(versionURL, &cacheEntry{
 			ETag:     etag,
 			Versions: versionSlice,
