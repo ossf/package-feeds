@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/robfig/cron"
+	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ossf/package-feeds/pkg/feeds"
@@ -49,7 +49,11 @@ func (s *Scheduler) Run(initialCutoff time.Duration, enableDefaultTimer bool) er
 	feedGroups := []*FeedGroup{}
 
 	// Configure cron job for scheduled polling.
-	cronJob := cron.New()
+	cronJob := cron.New(
+		cron.WithLogger(cron.PrintfLogger(log.StandardLogger())),
+		cron.WithParser(cron.NewParser(
+			cron.SecondOptional|cron.Minute|cron.Hour|cron.Dom|cron.Month|cron.Dow|cron.Descriptor,
+		)))
 	for schedule, feedGroup := range schedules {
 		feedGroups = append(feedGroups, feedGroup)
 
@@ -61,7 +65,7 @@ func (s *Scheduler) Run(initialCutoff time.Duration, enableDefaultTimer bool) er
 			schedule = defaultSchedule
 		}
 
-		err := cronJob.AddJob(schedule, feedGroup)
+		_, err := cronJob.AddJob(schedule, feedGroup)
 		if err != nil {
 			return fmt.Errorf("failed to parse schedule `%s`: %w", schedule, err)
 		}
