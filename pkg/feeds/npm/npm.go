@@ -13,6 +13,8 @@ import (
 	"sync"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru/v2"
+
 	"github.com/ossf/package-feeds/pkg/events"
 	"github.com/ossf/package-feeds/pkg/feeds"
 	"github.com/ossf/package-feeds/pkg/utils"
@@ -30,6 +32,11 @@ const (
 	// fetchWorkers defines the totoal number of concurrent HTTP1 requests to
 	// allow at any one time.
 	fetchWorkers = 10
+
+	// cacheEntryLimit defines how many responses to store in the LRU cache.
+	// The value should be larger than rssLimit to ensure all rss entries can
+	// be covered by a cache entry.
+	cacheEntryLimit = 500
 )
 
 var (
@@ -52,9 +59,24 @@ type PackageEvent struct {
 	Title string `xml:"title"`
 }
 
+// cacheEntry is stored in an LRU cache for a given URL key. The cache is used
+// only by the fetchPackage function to avoid needlessly requesting the unchanged
+// content repeatedly.
+type cacheEntry struct {
+	// ETag stores the value provided in the "Etag" header in a 200 OK response
+	// returned for the URL key. The ETag is used in requests in the
+	// "If-None-Match" header to only get the request body if the ETag no longer
+	// matches.
+	ETag string
+
+	// Versions stores the data retrieved and returned by the fetchPackage
+	// function below.
+	Versions []*Package
+}
+
 // Returns a slice of PackageEvent{} structs.
-func fetchPackageEvents(httpClient *http.Client, baseURL string) ([]PackageEvent, error) {
-	pkgURL, err := url.Parse(baseURL)
+func fetchPackageEvents(feed Feed) ([]PackageEvent, error) {
+	pkgURL, err := url.Parse(feed.baseURL)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +86,7 @@ func fetchPackageEvents(httpClient *http.Client, baseURL string) ([]PackageEvent
 	q.Set("limit", fmt.Sprintf("%d", rssLimit))
 	pkgURL.RawQuery = q.Encode()
 
-	resp, err := httpClient.Get(pkgURL.String())
+	resp, err := feed.client.Get(pkgURL.String())
 	if err != nil {
 		return nil, err
 	}
@@ -85,18 +107,36 @@ func fetchPackageEvents(httpClient *http.Client, baseURL string) ([]PackageEvent
 
 // Gets the package version & corresponding created date from NPM. Returns
 // a slice of {}Package.
-func fetchPackage(httpClient *http.Client, baseURL, pkgTitle string) ([]*Package, error) {
-	versionURL, err := url.JoinPath(baseURL, pkgTitle)
+func fetchPackage(feed Feed, pkgTitle string) ([]*Package, error) {
+	versionURL, err := url.JoinPath(feed.baseURL, pkgTitle)
 	if err != nil {
 		return nil, err
 	}
-	resp, err := httpClient.Get(versionURL)
+
+	req, err := http.NewRequest("GET", versionURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	e, inCache := feed.cache.Get(versionURL)
+	if inCache && e != nil {
+		// We found a cache entry, so do a conditional request that only returns
+		// content if the etag has changed.
+		req.Header.Add("If-None-Match", e.ETag)
+	}
+
+	resp, err := feed.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	body, readErr := io.ReadAll(resp.Body)
 	closeErr := resp.Body.Close()
 
+	if inCache && e != nil && utils.IsNotModified(resp) {
+		// We have a cached value and a 304 was returned, which means we can use
+		// our cached value as the result of this function call.
+		return e.Versions, nil
+	}
 	if err := utils.CheckResponseStatus(resp); err != nil {
 		return nil, fmt.Errorf("failed to fetch npm package version data: %w", err)
 	}
@@ -107,6 +147,7 @@ func fetchPackage(httpClient *http.Client, baseURL, pkgTitle string) ([]*Package
 	if closeErr != nil {
 		return nil, closeErr
 	}
+	etag := resp.Header.Get("etag")
 
 	// We only care about the `time` field as it contains all the versions in
 	// date order, from oldest to newest.
@@ -153,15 +194,25 @@ func fetchPackage(httpClient *http.Client, baseURL, pkgTitle string) ([]*Package
 		return versionSlice[j].CreatedDate.Before(versionSlice[i].CreatedDate)
 	})
 
+	if etag != "" {
+		// Add the result to the cache, only if the the etag is actually present.
+		// An etag should be present, but a server issue may result in the etag
+		// not being included.
+		feed.cache.Add(versionURL, &cacheEntry{
+			ETag:     etag,
+			Versions: versionSlice,
+		})
+	}
+
 	return versionSlice, nil
 }
 
-func fetchAllPackages(httpClient *http.Client, registryURL string) ([]*feeds.Package, []error) {
+func fetchAllPackages(feed Feed) ([]*feeds.Package, []error) {
 	pkgs := []*feeds.Package{}
 	errs := []error{}
 	packageChannel := make(chan []*Package)
 	errChannel := make(chan error)
-	packageEvents, err := fetchPackageEvents(httpClient, registryURL)
+	packageEvents, err := fetchPackageEvents(feed)
 	if err != nil {
 		// If we can't generate package events then return early.
 		return pkgs, append(errs, err)
@@ -183,7 +234,7 @@ func fetchAllPackages(httpClient *http.Client, registryURL string) ([]*feeds.Pac
 
 	// Define the fetcher function that grabs the repos from NPM
 	fetcherFn := func(pkgTitle string, count int) {
-		pkgs, err := fetchPackage(httpClient, registryURL, pkgTitle)
+		pkgs, err := fetchPackage(feed, pkgTitle)
 		if err != nil {
 			if !errors.Is(err, errUnpublished) {
 				err = feeds.PackagePollError{Name: pkgTitle, Err: err}
@@ -260,7 +311,7 @@ func fetchAllPackages(httpClient *http.Client, registryURL string) ([]*feeds.Pac
 	return pkgs, errs
 }
 
-func fetchCriticalPackages(httpClient *http.Client, registryURL string, packages []string) ([]*feeds.Package, []error) {
+func fetchCriticalPackages(feed Feed, packages []string) ([]*feeds.Package, []error) {
 	pkgs := []*feeds.Package{}
 	errs := []error{}
 	packageChannel := make(chan []*Package)
@@ -268,7 +319,7 @@ func fetchCriticalPackages(httpClient *http.Client, registryURL string, packages
 
 	for _, pkgTitle := range packages {
 		go func(pkgTitle string) {
-			pkgs, err := fetchPackage(httpClient, registryURL, pkgTitle)
+			pkgs, err := fetchPackage(feed, pkgTitle)
 			if err != nil {
 				if !errors.Is(err, errUnpublished) {
 					err = feeds.PackagePollError{Name: pkgTitle, Err: err}
@@ -305,6 +356,7 @@ type Feed struct {
 	baseURL          string
 	options          feeds.FeedOptions
 	client           *http.Client
+	cache            *lru.Cache[string, *cacheEntry]
 }
 
 func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, error) {
@@ -320,6 +372,11 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 	tr.MaxConnsPerHost = fetchWorkers
 	tr.IdleConnTimeout = 0 // No limit, try and reuse the idle connecitons.
 
+	cache, err := lru.New[string, *cacheEntry](cacheEntryLimit)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Feed{
 		packages:         feedOptions.Packages,
 		lossyFeedAlerter: feeds.NewLossyFeedAlerter(eventHandler),
@@ -329,6 +386,7 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 			Transport: tr,
 			Timeout:   45 * time.Second,
 		},
+		cache: cache,
 	}, nil
 }
 
@@ -337,9 +395,9 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 	var errs []error
 
 	if feed.packages == nil {
-		pkgs, errs = fetchAllPackages(feed.client, feed.baseURL)
+		pkgs, errs = fetchAllPackages(feed)
 	} else {
-		pkgs, errs = fetchCriticalPackages(feed.client, feed.baseURL, *feed.packages)
+		pkgs, errs = fetchCriticalPackages(feed, *feed.packages)
 	}
 
 	if len(pkgs) == 0 {
