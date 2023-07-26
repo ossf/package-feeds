@@ -74,7 +74,9 @@ func (s *Scheduler) Run(initialCutoff time.Duration, enableDefaultTimer bool) er
 			schedule = defaultSchedule
 		}
 
-		_, err := cronJob.AddJob(schedule, feedGroup)
+		_, err := cronJob.AddJob(schedule, cron.NewChain(
+			cron.SkipIfStillRunning(cron.VerbosePrintfLogger(log.StandardLogger())),
+		).Then(feedGroup))
 		if err != nil {
 			return fmt.Errorf("failed to parse schedule `%s`: %w", schedule, err)
 		}
