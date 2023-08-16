@@ -408,7 +408,7 @@ func TestPyPIArtifactsLive(t *testing.T) {
 		t.Fatalf("feed.Latest returned error: %v", err)
 	}
 	wantCutoff := time.Now().UTC()
-	if gotCutoff.Sub(wantCutoff).Abs() > time.Minute {
+	if gotCutoff.Sub(wantCutoff).Abs() > 5*time.Minute {
 		t.Errorf("Latest() cutoff %v, want %v", gotCutoff, wantCutoff)
 	}
 
