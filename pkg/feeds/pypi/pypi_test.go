@@ -27,9 +27,13 @@ func TestPypiLatest(t *testing.T) {
 	feed.baseURL = srv.URL
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, errs := feed.Latest(cutoff)
+	pkgs, gotCutoff, errs := feed.Latest(cutoff)
 	if len(errs) != 0 {
 		t.Fatalf("feed.Latest returned error: %v", err)
+	}
+	wantCutoff := time.Date(2021, 3, 19, 12, 1, 4, 0, time.UTC)
+	if gotCutoff.Sub(wantCutoff).Abs() > time.Second {
+		t.Errorf("Latest() cutoff %v, want %v", gotCutoff, wantCutoff)
 	}
 
 	if pkgs[0].Name != "FooPackage" {
@@ -74,9 +78,13 @@ func TestPypiCriticalLatest(t *testing.T) {
 	feed.baseURL = srv.URL
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, errs := feed.Latest(cutoff)
+	pkgs, gotCutoff, errs := feed.Latest(cutoff)
 	if len(errs) != 0 {
 		t.Fatalf("Failed to call Latest() with err: %v", errs[len(errs)-1])
+	}
+	wantCutoff := time.Date(2021, 3, 27, 22, 16, 26, 0, time.UTC)
+	if gotCutoff.Sub(wantCutoff).Abs() > time.Second {
+		t.Errorf("Latest() cutoff %v, want %v", gotCutoff, wantCutoff)
 	}
 
 	const expectedNumPackages = 4
@@ -127,7 +135,10 @@ func TestPypiAllNotFound(t *testing.T) {
 	feed.baseURL = srv.URL
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	_, errs := feed.Latest(cutoff)
+	_, gotCutoff, errs := feed.Latest(cutoff)
+	if cutoff != gotCutoff {
+		t.Error("feed.Latest() cutoff should be unchanged if an error is returned")
+	}
 	if len(errs) != 3 {
 		t.Fatalf("feed.Latest() returned %v errors when 3 were expected", len(errs))
 	}
@@ -158,7 +169,7 @@ func TestPypiCriticalPartialNotFound(t *testing.T) {
 	feed.baseURL = srv.URL
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, errs := feed.Latest(cutoff)
+	pkgs, _, errs := feed.Latest(cutoff)
 	if len(errs) != 1 {
 		t.Fatalf("feed.Latest() returned %v errors when 1 was expected", len(errs))
 	}

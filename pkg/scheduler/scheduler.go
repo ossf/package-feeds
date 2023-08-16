@@ -58,7 +58,7 @@ func (s *Scheduler) Run(initialCutoff time.Duration, enableDefaultTimer bool) er
 	for schedule, feedGroup := range schedules {
 		var feedNames []string
 		for _, f := range feedGroup.feeds {
-			feedNames = append(feedNames, f.GetName())
+			feedNames = append(feedNames, f.feed.GetName())
 		}
 
 		if schedule == "" {

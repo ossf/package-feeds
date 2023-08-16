@@ -176,18 +176,18 @@ func New(feedOptions feeds.FeedOptions) (*Feed, error) {
 // Latest will parse all creation events for packages in the nuget.org catalog feed
 // for packages that have been published since the cutoff
 // https://docs.microsoft.com/en-us/nuget/api/catalog-resource
-func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
+func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, time.Time, []error) {
 	pkgs := []*feeds.Package{}
 	var errs []error
 
 	catalogService, err := fetchCatalogService(feed.baseURL)
 	if err != nil {
-		return nil, append(errs, err)
+		return nil, cutoff, append(errs, err)
 	}
 
 	catalogPages, err := fetchCatalogPages(catalogService.URI)
 	if err != nil {
-		return nil, append(errs, err)
+		return nil, cutoff, append(errs, err)
 	}
 
 	for _, catalogPage := range catalogPages {
@@ -220,9 +220,10 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 			pkgs = append(pkgs, pkg)
 		}
 	}
+	newCutoff := feeds.FindCutoff(cutoff, pkgs)
 	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
 
-	return pkgs, errs
+	return pkgs, newCutoff, errs
 }
 
 func (feed Feed) GetName() string {

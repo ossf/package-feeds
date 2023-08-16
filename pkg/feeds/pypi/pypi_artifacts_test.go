@@ -403,9 +403,13 @@ func TestPyPIArtifactsLive(t *testing.T) {
 	}
 
 	cutoff := time.Now().AddDate(0, 0, -1)
-	pkgs, errs := feed.Latest(cutoff)
+	pkgs, gotCutoff, errs := feed.Latest(cutoff)
 	if len(errs) != 0 {
 		t.Fatalf("feed.Latest returned error: %v", err)
+	}
+	wantCutoff := time.Now().UTC()
+	if gotCutoff.Sub(wantCutoff).Abs() > time.Minute {
+		t.Errorf("Latest() cutoff %v, want %v", gotCutoff, wantCutoff)
 	}
 
 	for _, p := range pkgs {

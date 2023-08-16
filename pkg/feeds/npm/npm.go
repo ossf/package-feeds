@@ -390,7 +390,7 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 	}, nil
 }
 
-func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
+func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, time.Time, []error) {
 	var pkgs []*feeds.Package
 	var errs []error
 
@@ -402,7 +402,7 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 
 	if len(pkgs) == 0 {
 		// If none of the packages were successfully polled for, return early.
-		return nil, append(errs, feeds.ErrNoPackagesPolled)
+		return nil, cutoff, append(errs, feeds.ErrNoPackagesPolled)
 	}
 
 	// Ensure packages are sorted by CreatedDate in order of most recent, as goroutine
@@ -410,6 +410,9 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 	sort.SliceStable(pkgs, func(i, j int) bool {
 		return pkgs[j].CreatedDate.Before(pkgs[i].CreatedDate)
 	})
+
+	// After sorting the first entry should be the largest.
+	newCutoff := pkgs[0].CreatedDate
 
 	// TODO: Add an event for checking if the previous package list contains entries
 	// that do not exist in the latest package list when polling for critical packages.
@@ -419,7 +422,7 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 	}
 
 	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
-	return pkgs, errs
+	return pkgs, newCutoff, errs
 }
 
 func (feed Feed) GetName() string {

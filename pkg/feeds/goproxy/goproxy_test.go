@@ -26,11 +26,15 @@ func TestGoProxyLatest(t *testing.T) {
 	feed.baseURL = srv.URL
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, errs := feed.Latest(cutoff)
+	pkgs, gotCutoff, errs := feed.Latest(cutoff)
 	if len(errs) != 0 {
 		t.Fatalf("feed.Latest returned error: %v", err)
 	}
 
+	wantCutoff := time.Date(2019, 4, 10, 20, 30, 2, 0, time.UTC)
+	if gotCutoff.Sub(wantCutoff).Abs() > time.Second {
+		t.Errorf("Latest() cutoff %v, want %v", gotCutoff, wantCutoff)
+	}
 	if pkgs[0].Name != "golang.org/x/foo" {
 		t.Errorf("Unexpected package `%s` found in place of expected `golang.org/x/foo`", pkgs[0].Name)
 	}
@@ -66,7 +70,10 @@ func TestGoproxyNotFound(t *testing.T) {
 	feed.baseURL = srv.URL
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	_, errs := feed.Latest(cutoff)
+	_, gotCutoff, errs := feed.Latest(cutoff)
+	if cutoff != gotCutoff {
+		t.Error("feed.Latest() cutoff should be unchanged if an error is returned")
+	}
 	if len(errs) == 0 {
 		t.Fatalf("feed.Latest() was successful when an error was expected")
 	}
