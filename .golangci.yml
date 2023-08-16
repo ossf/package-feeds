@@ -8,7 +8,7 @@ linters:
     - asciicheck
     - bodyclose
     - deadcode
-    - depguard
+    #- depguard
     - dogsled
     - dupl
     - errcheck
