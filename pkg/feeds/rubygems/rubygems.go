@@ -64,7 +64,7 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 	}, nil
 }
 
-func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
+func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, time.Time, []error) {
 	pkgs := []*feeds.Package{}
 	packages := make(map[string]*Package)
 	var errs []error
@@ -72,7 +72,7 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 	newPackagesURL, err := url.JoinPath(feed.baseURL, activityPath, "latest.json")
 	if err != nil {
 		// Failure to construct a url should lead to a hard failure.
-		return nil, append(errs, err)
+		return nil, cutoff, append(errs, err)
 	}
 	newPackages, err := fetchPackages(newPackagesURL)
 	if err != nil {
@@ -86,7 +86,7 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 	updatedPackagesURL, err := url.JoinPath(feed.baseURL, activityPath, "just_updated.json")
 	if err != nil {
 		// Failure to construct a url should lead to a hard failure.
-		return nil, append(errs, err)
+		return nil, cutoff, append(errs, err)
 	}
 	updatedPackages, err := fetchPackages(updatedPackagesURL)
 	if err != nil {
@@ -104,8 +104,9 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 	}
 	feed.lossyFeedAlerter.ProcessPackages(FeedName, pkgs)
 
+	newCutoff := feeds.FindCutoff(cutoff, pkgs)
 	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
-	return pkgs, errs
+	return pkgs, newCutoff, errs
 }
 
 func (feed Feed) GetName() string {

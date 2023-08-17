@@ -17,10 +17,15 @@ var (
 	errPub  = errors.New("error when publishing packages")
 )
 
+type feedEntry struct {
+	feed     feeds.ScheduledFeed
+	lastPoll time.Time
+}
+
 type FeedGroup struct {
-	feeds     []feeds.ScheduledFeed
-	publisher publisher.Publisher
-	lastPoll  time.Time
+	feeds         []*feedEntry
+	publisher     publisher.Publisher
+	initialCutoff time.Time
 }
 
 type groupResult struct {
@@ -31,15 +36,22 @@ type groupResult struct {
 
 //nolint:lll
 func NewFeedGroup(scheduledFeeds []feeds.ScheduledFeed, pub publisher.Publisher, initialCutoff time.Duration) *FeedGroup {
-	return &FeedGroup{
-		feeds:     scheduledFeeds,
-		publisher: pub,
-		lastPoll:  time.Now().UTC().Add(-initialCutoff),
+	fg := &FeedGroup{
+		publisher:     pub,
+		initialCutoff: time.Now().UTC().Add(-initialCutoff),
+		feeds:         make([]*feedEntry, 0),
 	}
+	for _, feed := range scheduledFeeds {
+		fg.AddFeed(feed)
+	}
+	return fg
 }
 
 func (fg *FeedGroup) AddFeed(feed feeds.ScheduledFeed) {
-	fg.feeds = append(fg.feeds, feed)
+	fg.feeds = append(fg.feeds, &feedEntry{
+		feed:     feed,
+		lastPoll: fg.initialCutoff,
+	})
 }
 
 func (fg *FeedGroup) Run() {
@@ -71,15 +83,15 @@ func (fg *FeedGroup) pollAndPublish() groupResult {
 // Poll fetches the latest packages from each registered feed.
 func (fg *FeedGroup) poll() ([]*feeds.Package, error) {
 	results := make(chan pollResult, len(fg.feeds))
-	for _, feed := range fg.feeds {
-		go func(feed feeds.ScheduledFeed) {
+	for _, f := range fg.feeds {
+		go func(f *feedEntry) {
 			result := pollResult{
-				name: feed.GetName(),
-				feed: feed,
+				name: f.feed.GetName(),
+				feed: f.feed,
 			}
-			result.packages, result.errs = feed.Latest(fg.lastPoll)
+			result.packages, f.lastPoll, result.errs = f.feed.Latest(f.lastPoll)
 			results <- result
-		}(feed)
+		}(f)
 	}
 	errs := []error{}
 	packages := []*feeds.Package{}
@@ -105,9 +117,8 @@ func (fg *FeedGroup) poll() ([]*feeds.Package, error) {
 	if len(errs) == 0 {
 		err = nil
 	}
-	fg.lastPoll = time.Now().UTC()
 
-	log.Printf("%d packages processed", len(packages))
+	log.WithField("time", time.Now().UTC()).Printf("%d packages processed", len(packages))
 	return packages, err
 }
 

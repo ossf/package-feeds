@@ -29,12 +29,18 @@ func TestFetch(t *testing.T) {
 	feed.versionHost = srv.URL
 
 	cutoff := time.Unix(1614513658, 0)
-	latest, errs := feed.Latest(cutoff)
+	latest, gotCutoff, errs := feed.Latest(cutoff)
 	if len(errs) != 0 {
 		t.Fatalf("got error: %v", errs[len(errs)-1])
 	}
 	if len(latest) == 0 {
 		t.Fatalf("did not get any updates")
+	}
+
+	// Returned cutoff should match the newest package creation time of packages retrieved.
+	wantCutoff := time.Date(2021, 2, 28, 12, 20, 3, 0, time.UTC)
+	if gotCutoff.Sub(wantCutoff).Abs() > time.Second {
+		t.Errorf("Latest() cutoff %v, want %v", gotCutoff, wantCutoff)
 	}
 	for _, pkg := range latest {
 		if pkg.CreatedDate.Before(cutoff) {
@@ -64,7 +70,10 @@ func TestPackagistNotFound(t *testing.T) {
 	feed.versionHost = srv.URL
 
 	cutoff := time.Unix(1614513658, 0)
-	_, errs := feed.Latest(cutoff)
+	_, gotCutoff, errs := feed.Latest(cutoff)
+	if cutoff != gotCutoff {
+		t.Error("feed.Latest() cutoff should be unchanged if an error is returned")
+	}
 	if len(errs) != 1 {
 		t.Fatalf("feed.Latest() returned %v errors when 1 was expected", len(errs))
 	}

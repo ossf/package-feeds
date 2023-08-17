@@ -35,7 +35,6 @@ func TestFeedGroupPoll(t *testing.T) {
 	var pub publisher.Publisher = mockPub
 
 	feedGroup := NewFeedGroup(mockFeeds, pub, time.Minute)
-	startLastPollValue := feedGroup.lastPoll
 
 	pkgs, err := feedGroup.poll()
 	if err != nil {
@@ -43,9 +42,6 @@ func TestFeedGroupPoll(t *testing.T) {
 	}
 	if len(pkgs) != 4 {
 		t.Fatalf("poll() returned %v packages when 4 were expected", len(pkgs))
-	}
-	if startLastPollValue.Equal(feedGroup.lastPoll) {
-		t.Fatalf("Feed Group did not update last poll as expected")
 	}
 }
 
@@ -68,7 +64,6 @@ func TestFeedGroupPollWithErr(t *testing.T) {
 	var pub publisher.Publisher = mockPub
 
 	feedGroup := NewFeedGroup(mockFeeds, pub, time.Minute)
-	startLastPollValue := feedGroup.lastPoll
 
 	pkgs, err := feedGroup.poll()
 	if err == nil {
@@ -79,9 +74,6 @@ func TestFeedGroupPollWithErr(t *testing.T) {
 	}
 	if len(pkgs) != 2 {
 		t.Fatalf("Expected 2 packages alongside errors but found %v", len(pkgs))
-	}
-	if startLastPollValue.Equal(feedGroup.lastPoll) {
-		t.Fatalf("Feed Group did not update last poll as expected")
 	}
 }
 

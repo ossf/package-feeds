@@ -16,7 +16,7 @@ type UnsupportedOptionError struct {
 }
 
 type ScheduledFeed interface {
-	Latest(cutoff time.Time) ([]*Package, []error)
+	Latest(cutoff time.Time) ([]*Package, time.Time, []error)
 	GetFeedOptions() FeedOptions
 	GetName() string
 }
@@ -70,11 +70,20 @@ func NewArtifact(created time.Time, name, version, artifactID, feed string) *Pac
 func ApplyCutoff(pkgs []*Package, cutoff time.Time) []*Package {
 	filteredPackages := []*Package{}
 	for _, pkg := range pkgs {
-		if !pkg.CreatedDate.Before(cutoff) {
+		if pkg.CreatedDate.After(cutoff) {
 			filteredPackages = append(filteredPackages, pkg)
 		}
 	}
 	return filteredPackages
+}
+
+func FindCutoff(cutoff time.Time, pkgs []*Package) time.Time {
+	for _, pkg := range pkgs {
+		if pkg.CreatedDate.After(cutoff) {
+			cutoff = pkg.CreatedDate
+		}
+	}
+	return cutoff
 }
 
 func (err UnsupportedOptionError) Error() string {

@@ -28,9 +28,15 @@ func TestRubyLatest(t *testing.T) {
 	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, errs := feed.Latest(cutoff)
+	pkgs, gotCutoff, errs := feed.Latest(cutoff)
 	if len(errs) != 0 {
 		t.Fatalf("feed.Latest returned error: %v", errs[len(errs)-1])
+	}
+
+	// Returned cutoff should match the newest package creation time of packages retrieved.
+	wantCutoff := time.Date(2021, 3, 19, 13, 0, 43, 0, time.UTC)
+	if gotCutoff.Sub(wantCutoff).Abs() > time.Second {
+		t.Errorf("Latest() cutoff %v, want %v", gotCutoff, wantCutoff)
 	}
 
 	var fooPkg *feeds.Package
@@ -78,7 +84,10 @@ func TestRubyGemsNotFound(t *testing.T) {
 	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	_, errs := feed.Latest(cutoff)
+	_, gotCutoff, errs := feed.Latest(cutoff)
+	if cutoff != gotCutoff {
+		t.Error("feed.Latest() cutoff should be unchanged if an error is returned")
+	}
 	if len(errs) == 0 {
 		t.Fatalf("feed.Latest() was successful when an error was expected")
 	}
@@ -103,7 +112,7 @@ func TestRubyGemsPartialNotFound(t *testing.T) {
 	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, errs := feed.Latest(cutoff)
+	pkgs, _, errs := feed.Latest(cutoff)
 	if len(errs) != 1 {
 		t.Fatalf("feed.Latest() returned %v errors when 1 was expected", len(errs))
 	}

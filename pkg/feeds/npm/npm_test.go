@@ -35,9 +35,15 @@ func TestNpmLatest(t *testing.T) {
 	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, errs := feed.Latest(cutoff)
+	pkgs, gotCutoff, errs := feed.Latest(cutoff)
 	if len(errs) != 0 {
 		t.Fatalf("feed.Latest returned error: %v", errs[len(errs)-1])
+	}
+
+	// Returned cutoff should match the newest package creation time of packages retrieved.
+	wantCutoff := time.Date(2021, 5, 11, 18, 32, 1, 0, time.UTC)
+	if gotCutoff != wantCutoff {
+		t.Errorf("Latest() cutoff %v, want %v", gotCutoff, wantCutoff)
 	}
 
 	if pkgs[0].Name != "FooPackage" {
@@ -136,13 +142,19 @@ func TestNpmCritical(t *testing.T) {
 	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, errs := feed.Latest(cutoff)
+	pkgs, gotCutoff, errs := feed.Latest(cutoff)
 	if len(errs) != 0 {
 		t.Fatalf("Failed to call Latest() with err: %v", errs[len(errs)-1])
 	}
 
 	if len(pkgs) != 5 {
 		t.Fatalf("Latest() produced %v packages instead of the expected 7", len(pkgs))
+	}
+
+	// Returned cutoff should match the newest package creation time of packages retrieved.
+	wantCutoff := time.Date(2021, 5, 11, 18, 32, 1, 0, time.UTC)
+	if gotCutoff != wantCutoff {
+		t.Errorf("Latest() cutoff %v, want %v", gotCutoff, wantCutoff)
 	}
 
 	pkgMap := map[string]map[string]*feeds.Package{}
@@ -192,7 +204,7 @@ func TestNpmCriticalUnpublished(t *testing.T) {
 	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, errs := feed.Latest(cutoff)
+	pkgs, _, errs := feed.Latest(cutoff)
 
 	if len(errs) != 1 {
 		t.Fatalf("feed.Latest() returned %v errors when 1 was expected", len(errs))
@@ -274,7 +286,10 @@ func TestNpmNotFound(t *testing.T) {
 	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	_, errs := feed.Latest(cutoff)
+	_, gotCutoff, errs := feed.Latest(cutoff)
+	if cutoff != gotCutoff {
+		t.Error("feed.Latest() cutoff should be unchanged if an error is returned")
+	}
 	if len(errs) != 2 {
 		t.Fatalf("feed.Latest() returned %v errors when 2 were expected", len(errs))
 	}
@@ -304,7 +319,7 @@ func TestNpmPartialNotFound(t *testing.T) {
 	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, errs := feed.Latest(cutoff)
+	pkgs, _, errs := feed.Latest(cutoff)
 	if len(errs) != 1 {
 		t.Fatalf("feed.Latest() returned %v errors when 1 was expected", len(errs))
 	}
@@ -343,7 +358,7 @@ func TestNpmCriticalPartialNotFound(t *testing.T) {
 	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, errs := feed.Latest(cutoff)
+	pkgs, _, errs := feed.Latest(cutoff)
 	if len(errs) != 1 {
 		t.Fatalf("feed.Latest() returned %v errors when 1 was expected", len(errs))
 	}

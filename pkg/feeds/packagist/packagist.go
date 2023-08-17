@@ -115,12 +115,12 @@ func fetchVersionInformation(versionHost string, action actions) ([]*feeds.Packa
 }
 
 // Latest returns all package updates of packagist packages since cutoff.
-func (f Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
+func (f Feed) Latest(cutoff time.Time) ([]*feeds.Package, time.Time, []error) {
 	pkgs := []*feeds.Package{}
 	var errs []error
 	packages, err := fetchPackages(f.updateHost, cutoff)
 	if err != nil {
-		return nil, append(errs, err)
+		return nil, cutoff, append(errs, err)
 	}
 	for _, pkg := range packages {
 		if time.Unix(pkg.Time, 0).Before(cutoff) {
@@ -136,8 +136,9 @@ func (f Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 		}
 		pkgs = append(pkgs, updates...)
 	}
+	newCutoff := feeds.FindCutoff(cutoff, pkgs)
 	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
-	return pkgs, errs
+	return pkgs, newCutoff, errs
 }
 
 func (f Feed) GetName() string {

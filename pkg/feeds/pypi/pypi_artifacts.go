@@ -29,18 +29,19 @@ func NewArtifactFeed(feedOptions feeds.FeedOptions) (*ArtifactFeed, error) {
 	}, nil
 }
 
-func (feed ArtifactFeed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
+func (feed ArtifactFeed) Latest(cutoff time.Time) ([]*feeds.Package, time.Time, []error) {
 	client, err := xmlrpc.NewClient(feed.baseURL, nil)
 	if err != nil {
-		return nil, []error{err}
+		return nil, cutoff, []error{err}
 	}
 
 	changelogEntries, err := getPyPIChangeLog(client, cutoff)
 	if err != nil {
-		return nil, []error{err}
+		return nil, cutoff, []error{err}
 	}
 
-	return getUploadedArtifacts(changelogEntries), nil
+	pkgs := getUploadedArtifacts(changelogEntries)
+	return pkgs, feeds.FindCutoff(cutoff, pkgs), nil
 }
 
 func (feed ArtifactFeed) GetFeedOptions() feeds.FeedOptions {

@@ -166,7 +166,7 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 	}, nil
 }
 
-func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
+func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, time.Time, []error) {
 	pkgs := []*feeds.Package{}
 	var pypiPackages []*Package
 	var errs []error
@@ -178,14 +178,14 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 		// data.
 		pypiPackages, err = fetchPackages(feed.baseURL)
 		if err != nil {
-			return nil, append(errs, err)
+			return nil, cutoff, append(errs, err)
 		}
 	} else {
 		// Fetch specific packages individually from configured packages list.
 		pypiPackages, errs = fetchCriticalPackages(feed.baseURL, *feed.packages)
 		if len(pypiPackages) == 0 {
 			// If none of the packages were successfully polled for, return early.
-			return nil, append(errs, feeds.ErrNoPackagesPolled)
+			return nil, cutoff, append(errs, feeds.ErrNoPackagesPolled)
 		}
 	}
 
@@ -209,8 +209,9 @@ func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
 		feed.lossyFeedAlerter.ProcessPackages(FeedName, pkgs)
 	}
 
+	newCutoff := feeds.FindCutoff(cutoff, pkgs)
 	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
-	return pkgs, errs
+	return pkgs, newCutoff, errs
 }
 
 func (feed Feed) GetPackageList() *[]string {

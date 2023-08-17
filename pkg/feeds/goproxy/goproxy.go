@@ -100,18 +100,19 @@ func New(feedOptions feeds.FeedOptions) (*Feed, error) {
 	}, nil
 }
 
-func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, []error) {
+func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, time.Time, []error) {
 	pkgs := []*feeds.Package{}
 	packages, err := fetchPackages(feed.baseURL, cutoff)
 	if err != nil {
-		return pkgs, []error{err}
+		return pkgs, cutoff, []error{err}
 	}
 	for _, pkg := range packages {
 		pkg := feeds.NewPackage(pkg.ModifiedDate, pkg.Title, pkg.Version, FeedName)
 		pkgs = append(pkgs, pkg)
 	}
+	newCutoff := feeds.FindCutoff(cutoff, pkgs)
 	pkgs = feeds.ApplyCutoff(pkgs, cutoff)
-	return pkgs, []error{}
+	return pkgs, newCutoff, []error{}
 }
 
 func (feed Feed) GetName() string {
