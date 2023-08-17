@@ -407,9 +407,13 @@ func TestPyPIArtifactsLive(t *testing.T) {
 	if len(errs) != 0 {
 		t.Fatalf("feed.Latest returned error: %v", err)
 	}
-	wantCutoff := time.Now().UTC()
-	if gotCutoff.Sub(wantCutoff).Abs() > 5*time.Minute {
-		t.Errorf("Latest() cutoff %v, want %v", gotCutoff, wantCutoff)
+
+	if cutoff == gotCutoff {
+		t.Errorf("Latest() cutoff did not change")
+	}
+
+	if len(pkgs) == 0 {
+		t.Fatalf("Latest() returned no packages")
 	}
 
 	for _, p := range pkgs {

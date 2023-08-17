@@ -36,6 +36,8 @@ func TestFetch(t *testing.T) {
 	if len(latest) == 0 {
 		t.Fatalf("did not get any updates")
 	}
+
+	// Returned cutoff should match the newest package creation time of packages retrieved.
 	wantCutoff := time.Date(2021, 2, 28, 12, 20, 3, 0, time.UTC)
 	if gotCutoff.Sub(wantCutoff).Abs() > time.Second {
 		t.Errorf("Latest() cutoff %v, want %v", gotCutoff, wantCutoff)

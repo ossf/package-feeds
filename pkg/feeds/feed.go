@@ -15,13 +15,6 @@ type UnsupportedOptionError struct {
 	Feed   string
 }
 
-// Cutoff is an interface used to define orering of package updates.
-//
-// The type *time.Time satisifies this interface.
-type Cutoff[T any] interface {
-	Before(Cutoff[T]) bool
-}
-
 type ScheduledFeed interface {
 	Latest(cutoff time.Time) ([]*Package, time.Time, []error)
 	GetFeedOptions() FeedOptions

@@ -31,6 +31,7 @@ func TestGoProxyLatest(t *testing.T) {
 		t.Fatalf("feed.Latest returned error: %v", err)
 	}
 
+	// Returned cutoff should match the newest package creation time of packages retrieved.
 	wantCutoff := time.Date(2019, 4, 10, 20, 30, 2, 0, time.UTC)
 	if gotCutoff.Sub(wantCutoff).Abs() > time.Second {
 		t.Errorf("Latest() cutoff %v, want %v", gotCutoff, wantCutoff)

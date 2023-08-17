@@ -35,9 +35,15 @@ func TestNpmLatest(t *testing.T) {
 	}
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	pkgs, _, errs := feed.Latest(cutoff)
+	pkgs, gotCutoff, errs := feed.Latest(cutoff)
 	if len(errs) != 0 {
 		t.Fatalf("feed.Latest returned error: %v", errs[len(errs)-1])
+	}
+
+	// Returned cutoff should match the newest package creation time of packages retrieved.
+	wantCutoff := time.Date(2021, 5, 11, 18, 32, 1, 0, time.UTC)
+	if gotCutoff != wantCutoff {
+		t.Errorf("Latest() cutoff %v, want %v", gotCutoff, wantCutoff)
 	}
 
 	if pkgs[0].Name != "FooPackage" {
@@ -145,6 +151,7 @@ func TestNpmCritical(t *testing.T) {
 		t.Fatalf("Latest() produced %v packages instead of the expected 7", len(pkgs))
 	}
 
+	// Returned cutoff should match the newest package creation time of packages retrieved.
 	wantCutoff := time.Date(2021, 5, 11, 18, 32, 1, 0, time.UTC)
 	if gotCutoff != wantCutoff {
 		t.Errorf("Latest() cutoff %v, want %v", gotCutoff, wantCutoff)

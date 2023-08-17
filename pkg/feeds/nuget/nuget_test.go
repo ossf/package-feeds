@@ -44,6 +44,9 @@ func TestCanParseFeed(t *testing.T) {
 		t.Fatal(errs[len(errs)-1])
 	}
 
+	// Returned cutoff should match the newest package creation time of packages retrieved.
+	// This time is automatically generated at approx 1 minutes ago. The threshold of 70s
+	// ensures this test doesn't fail with the multiple mocked API requests.
 	wantCutoff := time.Now().UTC()
 	if gotCutoff == cutoff || gotCutoff.Sub(wantCutoff).Abs() > (70*time.Second) {
 		t.Errorf("Latest() cutoff %v, want %v", gotCutoff, wantCutoff)

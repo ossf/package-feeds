@@ -31,6 +31,8 @@ func TestCratesLatest(t *testing.T) {
 	if len(errs) != 0 {
 		t.Fatalf("feed.Latest returned error: %v", err)
 	}
+
+	// Time should match the newest package creation time of packages retrieved.
 	wantCutoff := time.Date(2021, 3, 19, 13, 36, 33, 0, time.UTC)
 	if gotCutoff.Sub(wantCutoff).Abs() > time.Second {
 		t.Errorf("Latest() cutoff %v, want %v", gotCutoff, wantCutoff)
