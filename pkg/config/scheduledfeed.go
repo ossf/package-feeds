@@ -24,6 +24,7 @@ import (
 	"github.com/ossf/package-feeds/pkg/feeds/rubygems"
 	"github.com/ossf/package-feeds/pkg/publisher"
 	"github.com/ossf/package-feeds/pkg/publisher/gcppubsub"
+	"github.com/ossf/package-feeds/pkg/publisher/httpclientpubsub"
 	"github.com/ossf/package-feeds/pkg/publisher/kafkapubsub"
 	"github.com/ossf/package-feeds/pkg/publisher/stdout"
 )
@@ -154,6 +155,8 @@ func (pc PublisherConfig) ToPublisher(ctx context.Context) (publisher.Publisher,
 		return kafkapubsub.FromConfig(ctx, kafkaConfig)
 	case stdout.PublisherType:
 		return stdout.New(), nil
+	case "http-client": // Check for the new publisher type
+		return httpclientpubsub.New(pc.HTTPClientConfig)
 	default:
 		return nil, fmt.Errorf("%w : %v", errUnknownPub, pc.Type)
 	}

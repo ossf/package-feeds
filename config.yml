@@ -1,0 +1,12 @@
+feeds:
+- type: pypi
+- type: npm
+- type: goproxy
+- type: rubygems
+- type: crates
+
+publisher:
+  type: 'http-client'
+  config:
+    http_client_config:
+      url: 'http://127.0.0.1:8081/events'  # Replace with your actual URL
