@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  package-feeds:
+    build: .
+    image: local-package-feeds
+    ports:
+      - "8080:8080"
+    volumes:
+      - "${FEED_CONFIG_PATH:-/tmp/feedconfig}:/config/"
+    environment:
+      - PACKAGE_FEEDS_CONFIG_PATH=/config/feeds.yml
+    tty: true
+    stdin_open: true
