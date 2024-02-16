@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -34,6 +35,38 @@ type pollResult struct {
 	feed     feeds.ScheduledFeed
 	packages []*feeds.Package
 	errs     []error
+}
+
+// healthCheckHandler is a simple health check handler for the HTTP server.
+func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// Define a simple JSON response structure
+	response := struct {
+		Status  string `json:"status"`
+		Message string `json:"message"`
+	}{
+		Status:  "OK",
+		Message: "Service is up and running",
+	}
+
+	// Serialize the response structure to JSON
+	jsonResponse, err := json.Marshal(response)
+	if err != nil {
+		// If there's an error, log it and return a 500 Internal Server Error
+		log.Errorf("Failed to marshal health check response: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Write an HTTP status code to the response
+	w.WriteHeader(http.StatusOK)
+
+	// Write the JSON response body
+	_, err = w.Write(jsonResponse)
+	if err != nil {
+		log.Errorf("Failed to write health check response: %v", err)
+	}
 }
 
 // Runs several services for the operation of scheduler, this call is blocking until application exit
@@ -89,6 +122,7 @@ func (s *Scheduler) Run(initialCutoff time.Duration, enableDefaultTimer bool) er
 	pollServer := NewFeedGroupsHandler(feedGroups)
 	log.Infof("Listening on port %v for %s", s.httpPort, strings.Join(pollFeedNames, ", "))
 	http.Handle("/", pollServer)
+	http.HandleFunc("/health", healthCheckHandler)
 
 	server := &http.Server{
 		Addr: fmt.Sprintf(":%v", s.httpPort),
