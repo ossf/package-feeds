@@ -3,6 +3,7 @@ package maven
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -19,6 +20,8 @@ type Feed struct {
 	baseURL string
 	options feeds.FeedOptions
 }
+
+var ErrMaxRetriesReached = errors.New("maximum retries reached due to rate limiting")
 
 func New(feedOptions feeds.FeedOptions) (*Feed, error) {
 	if feedOptions.Packages != nil {
@@ -52,39 +55,54 @@ type Response struct {
 
 // fetchPackages fetches packages from Sonatype API for the given page.
 func (feed Feed) fetchPackages(page int) ([]Package, error) {
-	// Define the request payload
-	payload := map[string]interface{}{
-		"page":          page,
-		"size":          20,
-		"sortField":     "publishedDate",
-		"sortDirection": "desc",
-	}
+	maxRetries := 5
+	retryDelay := 5 * time.Second
 
-	jsonPayload, err := json.Marshal(payload)
-	if err != nil {
-		return nil, fmt.Errorf("error encoding JSON: %w", err)
-	}
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		// Define the request payload
+		payload := map[string]interface{}{
+			"page":          page,
+			"size":          20,
+			"sortField":     "publishedDate",
+			"sortDirection": "desc",
+		}
 
-	// Send POST request to Sonatype API.
-	resp, err := http.Post(feed.baseURL+"?repository=maven-central", "application/json", bytes.NewBuffer(jsonPayload))
-	if err != nil {
-		return nil, fmt.Errorf("error sending request: %w", err)
-	}
-	defer resp.Body.Close()
+		jsonPayload, err := json.Marshal(payload)
+		if err != nil {
+			return nil, fmt.Errorf("error encoding JSON: %w", err)
+		}
 
-	// Handle rate limiting (HTTP status code 429).
-	if resp.StatusCode == http.StatusTooManyRequests {
-		time.Sleep(5 * time.Second)
-		return feed.fetchPackages(page) // Retry the request
-	}
+		// Send POST request to Sonatype API.
+		resp, err := http.Post(feed.baseURL+"?repository=maven-central", "application/json", bytes.NewBuffer(jsonPayload))
+		if err != nil {
+			// Check if maximum retries have been reached
+			if attempt == maxRetries {
+				return nil, fmt.Errorf("error sending request: %w", err)
+			}
+			time.Sleep(retryDelay) // Wait before retrying
+			continue
+		}
+		defer resp.Body.Close()
 
-	// Decode response.
-	var response Response
-	err = json.NewDecoder(resp.Body).Decode(&response)
-	if err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+		// Handle rate limiting (HTTP status code 429).
+		if resp.StatusCode == http.StatusTooManyRequests {
+			// Check if maximum retries have been reached
+			if attempt == maxRetries {
+				return nil, ErrMaxRetriesReached
+			}
+			time.Sleep(retryDelay) // Wait before retrying
+			continue
+		}
+
+		// Decode response.
+		var response Response
+		err = json.NewDecoder(resp.Body).Decode(&response)
+		if err != nil {
+			return nil, fmt.Errorf("error decoding response: %w", err)
+		}
+		return response.Components, nil
 	}
-	return response.Components, nil
+	return nil, ErrMaxRetriesReached
 }
 
 func (feed Feed) Latest(cutoff time.Time) ([]*feeds.Package, time.Time, []error) {

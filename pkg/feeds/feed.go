@@ -70,7 +70,7 @@ func NewArtifact(created time.Time, name, version, artifactID, feed string) *Pac
 func ApplyCutoff(pkgs []*Package, cutoff time.Time) []*Package {
 	filteredPackages := []*Package{}
 	for _, pkg := range pkgs {
-		if pkg.CreatedDate.UTC().After(cutoff) {
+		if pkg.CreatedDate.After(cutoff) {
 			filteredPackages = append(filteredPackages, pkg)
 		}
 	}
