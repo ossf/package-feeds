@@ -9,5 +9,5 @@ The `packages` field is not supported by the maven feed.
 
 ```
 feeds:
-- type: maven
+- type: maven-central
 ```
