@@ -41,7 +41,15 @@ func fetchPackages(baseURL string) ([]*Package, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp, err := httpClient.Get(pkgURL)
+	req, err := http.NewRequest("GET", pkgURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// set headers
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "package-feeds")
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
