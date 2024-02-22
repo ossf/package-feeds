@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	FeedName  = "maven"
+	FeedName  = "maven-central"
 	indexPath = "/api/internal/browse/components"
 )
 
