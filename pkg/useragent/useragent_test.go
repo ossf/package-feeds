@@ -9,6 +9,7 @@ import (
 )
 
 func TestRoundTripper(t *testing.T) {
+	t.Parallel()
 	want := "test user agent string"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		got := r.Header.Get("user-agent")
@@ -26,6 +27,7 @@ func TestRoundTripper(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get() = %v; want no error", err)
 	}
+	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("Get() status = %v; want 200", resp.StatusCode)
 	}
@@ -38,6 +40,7 @@ func (rt roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 }
 
 func TestRoundTripper_Parent(t *testing.T) {
+	t.Parallel()
 	want := "test user agent string"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		got := r.Header.Get("user-agent")
@@ -62,6 +65,7 @@ func TestRoundTripper_Parent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get() = %v; want no error", err)
 	}
+	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("Get() status = %v; want 200", resp.StatusCode)
 	}
