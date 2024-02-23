@@ -68,7 +68,7 @@ func (feed Feed) fetchPackages(page int) ([]Package, error) {
 	if err != nil {
 		return nil, err
 	}
-	indexURL = indexURL + "?repository=maven-central"
+	indexURL += "?repository=maven-central"
 
 	maxRetries := 5
 	retryDelay := 5 * time.Second
