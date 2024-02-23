@@ -9,6 +9,7 @@ import (
 
 	"github.com/ossf/package-feeds/pkg/events"
 	"github.com/ossf/package-feeds/pkg/feeds"
+	"github.com/ossf/package-feeds/pkg/useragent"
 	"github.com/ossf/package-feeds/pkg/utils"
 )
 
@@ -18,7 +19,8 @@ const (
 )
 
 var httpClient = &http.Client{
-	Timeout: 10 * time.Second,
+	Transport: &useragent.RoundTripper{UserAgent: feeds.DefaultUserAgent},
+	Timeout:   10 * time.Second,
 }
 
 type Package struct {

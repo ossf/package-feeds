@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ossf/package-feeds/pkg/feeds"
+	"github.com/ossf/package-feeds/pkg/useragent"
 	"github.com/ossf/package-feeds/pkg/utils"
 )
 
@@ -19,8 +20,9 @@ const (
 )
 
 var (
-	httpClient = http.Client{
-		Timeout: 10 * time.Second,
+	httpClient = &http.Client{
+		Transport: &useragent.RoundTripper{UserAgent: feeds.DefaultUserAgent},
+		Timeout:   10 * time.Second,
 	}
 	errCatalogService = errors.New("error fetching catalog service")
 )
