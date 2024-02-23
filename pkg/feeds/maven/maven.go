@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ossf/package-feeds/pkg/feeds"
+	"github.com/ossf/package-feeds/pkg/useragent"
 )
 
 const (
@@ -21,7 +22,14 @@ type Feed struct {
 	options feeds.FeedOptions
 }
 
-var ErrMaxRetriesReached = errors.New("maximum retries reached due to rate limiting")
+var (
+	httpClient = &http.Client{
+		Transport: &useragent.RoundTripper{UserAgent: feeds.DefaultUserAgent},
+		Timeout:   10 * time.Second,
+	}
+
+	ErrMaxRetriesReached = errors.New("maximum retries reached due to rate limiting")
+)
 
 func New(feedOptions feeds.FeedOptions) (*Feed, error) {
 	if feedOptions.Packages != nil {
@@ -73,7 +81,7 @@ func (feed Feed) fetchPackages(page int) ([]Package, error) {
 		}
 
 		// Send POST request to Sonatype API.
-		resp, err := http.Post(feed.baseURL+"?repository=maven-central", "application/json", bytes.NewBuffer(jsonPayload))
+		resp, err := httpClient.Post(feed.baseURL+"?repository=maven-central", "application/json", bytes.NewBuffer(jsonPayload))
 		if err != nil {
 			// Check if maximum retries have been reached
 			if attempt == maxRetries {
