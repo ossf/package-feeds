@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/ossf/package-feeds/pkg/feeds"
@@ -39,7 +40,7 @@ func New(feedOptions feeds.FeedOptions) (*Feed, error) {
 		}
 	}
 	return &Feed{
-		baseURL: "https://central.sonatype.com/" + indexPath,
+		baseURL: "https://central.sonatype.com",
 		options: feedOptions,
 	}, nil
 }
@@ -63,6 +64,12 @@ type Response struct {
 
 // fetchPackages fetches packages from Sonatype API for the given page.
 func (feed Feed) fetchPackages(page int) ([]Package, error) {
+	indexURL, err := url.JoinPath(feed.baseURL, indexPath)
+	if err != nil {
+		return nil, err
+	}
+	indexURL = indexURL + "?repository=maven-central"
+
 	maxRetries := 5
 	retryDelay := 5 * time.Second
 
@@ -79,9 +86,10 @@ func (feed Feed) fetchPackages(page int) ([]Package, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error encoding JSON: %w", err)
 		}
+		body := bytes.NewReader(jsonPayload)
 
 		// Send POST request to Sonatype API.
-		resp, err := httpClient.Post(feed.baseURL+"?repository=maven-central", "application/json", bytes.NewBuffer(jsonPayload))
+		resp, err := httpClient.Post(indexURL, "application/json", body)
 		if err != nil {
 			// Check if maximum retries have been reached
 			if attempt == maxRetries {

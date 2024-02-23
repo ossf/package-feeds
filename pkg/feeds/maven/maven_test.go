@@ -21,13 +21,13 @@ func TestMavenLatest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create Maven feed: %v", err)
 	}
-	feed.baseURL = srv.URL + "/api/internal/browse/components"
+	feed.baseURL = srv.URL
 
 	cutoff := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
 	pkgs, gotCutoff, errs := feed.Latest(cutoff)
 
 	if len(errs) != 0 {
-		t.Fatalf("feed.Latest returned error: %v", err)
+		t.Fatalf("feed.Latest returned error: %v", errs)
 	}
 
 	// Returned cutoff should match the newest package creation time of packages retrieved.
@@ -61,7 +61,7 @@ func TestMavenNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create Maven feed: %v", err)
 	}
-	feed.baseURL = srv.URL + "/api/internal/browse/components"
+	feed.baseURL = srv.URL
 
 	cutoff := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 
