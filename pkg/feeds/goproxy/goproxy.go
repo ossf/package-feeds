@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ossf/package-feeds/pkg/feeds"
+	"github.com/ossf/package-feeds/pkg/useragent"
 	"github.com/ossf/package-feeds/pkg/utils"
 )
 
@@ -17,7 +18,10 @@ const (
 	indexPath = "/index"
 )
 
-var httpClient = &http.Client{Timeout: 10 * time.Second}
+var httpClient = &http.Client{
+	Transport: &useragent.RoundTripper{UserAgent: feeds.DefaultUserAgent},
+	Timeout:   10 * time.Second,
+}
 
 type PackageJSON struct {
 	Path      string `json:"Path"`
