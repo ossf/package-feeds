@@ -17,6 +17,7 @@ import (
 	"github.com/ossf/package-feeds/pkg/feeds"
 	"github.com/ossf/package-feeds/pkg/feeds/crates"
 	"github.com/ossf/package-feeds/pkg/feeds/goproxy"
+	"github.com/ossf/package-feeds/pkg/feeds/maven"
 	"github.com/ossf/package-feeds/pkg/feeds/npm"
 	"github.com/ossf/package-feeds/pkg/feeds/nuget"
 	"github.com/ossf/package-feeds/pkg/feeds/packagist"
@@ -171,6 +172,8 @@ func (fc FeedConfig) ToFeed(eventHandler *events.Handler) (feeds.ScheduledFeed, 
 		return npm.New(fc.Options, eventHandler)
 	case nuget.FeedName:
 		return nuget.New(fc.Options)
+	case maven.FeedName:
+		return maven.New(fc.Options)
 	case pypi.FeedName:
 		return pypi.New(fc.Options, eventHandler)
 	case packagist.FeedName:
@@ -212,6 +215,10 @@ func Default() *ScheduledFeedConfig {
 			},
 			{
 				Type:    nuget.FeedName,
+				Options: defaultFeedOptions,
+			},
+			{
+				Type:    maven.FeedName,
 				Options: defaultFeedOptions,
 			},
 			{

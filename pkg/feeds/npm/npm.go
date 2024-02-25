@@ -17,6 +17,7 @@ import (
 
 	"github.com/ossf/package-feeds/pkg/events"
 	"github.com/ossf/package-feeds/pkg/feeds"
+	"github.com/ossf/package-feeds/pkg/useragent"
 	"github.com/ossf/package-feeds/pkg/utils"
 )
 
@@ -383,8 +384,11 @@ func New(feedOptions feeds.FeedOptions, eventHandler *events.Handler) (*Feed, er
 		baseURL:          "https://registry.npmjs.org/",
 		options:          feedOptions,
 		client: &http.Client{
-			Transport: tr,
-			Timeout:   45 * time.Second,
+			Transport: &useragent.RoundTripper{
+				UserAgent: feeds.DefaultUserAgent,
+				Parent:    tr,
+			},
+			Timeout: 45 * time.Second,
 		},
 		cache: cache,
 	}, nil

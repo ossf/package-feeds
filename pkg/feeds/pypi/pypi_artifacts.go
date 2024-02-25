@@ -8,6 +8,7 @@ import (
 	"github.com/kolo/xmlrpc"
 
 	"github.com/ossf/package-feeds/pkg/feeds"
+	"github.com/ossf/package-feeds/pkg/useragent"
 )
 
 const (
@@ -30,7 +31,7 @@ func NewArtifactFeed(feedOptions feeds.FeedOptions) (*ArtifactFeed, error) {
 }
 
 func (feed ArtifactFeed) Latest(cutoff time.Time) ([]*feeds.Package, time.Time, []error) {
-	client, err := xmlrpc.NewClient(feed.baseURL, nil)
+	client, err := xmlrpc.NewClient(feed.baseURL, &useragent.RoundTripper{UserAgent: feeds.DefaultUserAgent})
 	if err != nil {
 		return nil, cutoff, []error{err}
 	}
