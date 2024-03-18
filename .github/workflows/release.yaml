@@ -1,4 +1,5 @@
 name: Release
+
 on:
   push:
     branches:
@@ -6,6 +7,8 @@ on:
     # Publish `v1.2.3` tags as releases.
     tags:
       - v*
+
+permissions: read-all
 
 env:
   IMAGE_NAME: packagefeeds
