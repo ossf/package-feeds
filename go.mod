@@ -10,7 +10,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/xeipuuv/gojsonschema v1.2.0
 	gocloud.dev v0.37.0
-	gocloud.dev/pubsub/kafkapubsub v0.30.0
+	gocloud.dev/pubsub/kafkapubsub v0.37.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -19,10 +19,10 @@ require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	cloud.google.com/go/iam v1.1.6 // indirect
 	cloud.google.com/go/pubsub v1.37.0 // indirect
-	github.com/Shopify/sarama v1.38.1 // indirect
+	github.com/IBM/sarama v1.43.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/eapache/go-resiliency v1.3.0 // indirect
-	github.com/eapache/go-xerial-snappy v0.0.0-20230111030713-bf00bc1b83b6 // indirect
+	github.com/eapache/go-resiliency v1.6.0 // indirect
+	github.com/eapache/go-xerial-snappy v0.0.0-20230731223053-c322873962e3 // indirect
 	github.com/eapache/queue v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
@@ -42,9 +42,11 @@ require (
 	github.com/jcmturner/gofork v1.7.6 // indirect
 	github.com/jcmturner/gokrb5/v8 v8.4.4 // indirect
 	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
-	github.com/klauspost/compress v1.16.6 // indirect
-	github.com/pierrec/lz4/v4 v4.1.18 // indirect
+	github.com/klauspost/compress v1.17.7 // indirect
+	github.com/kr/text v0.2.0 // indirect
+	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
+	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	go.opencensus.io v0.24.0 // indirect
