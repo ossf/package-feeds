@@ -1,9 +1,6 @@
 name: 'Deploy with Terraform'
 
-on:
-  push:
-    branches:
-    - main
+on: workflow_dispatch
 
 permissions: read-all
 
