@@ -36,7 +36,7 @@ jobs:
       - name: Log into registry
         uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc
         with:
-          registry: docker.pkg.github.com
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -44,7 +44,7 @@ jobs:
         uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # v5
         id: docker-metadata
         with:
-          images: docker.pkg.github.com/${{ github.repository }}/${{ env.IMAGE_NAME }}
+          images: ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}
           labels: |
             org.opencontainers.image.source=${{ github.repositoryUrl }}
             org.opencontainers.image.description="This is a container for the Package Feeds process"
@@ -79,4 +79,4 @@ jobs:
 
       - name: Sign the image
         run: |
-          cosign sign --key cosign.key docker.pkg.github.com/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tags }}
+          cosign sign --key cosign.key ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tags }}
