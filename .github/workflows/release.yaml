@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       packages: write
+      id-token: write
       contents: read
 
     steps:
@@ -79,4 +80,4 @@ jobs:
 
       - name: Sign the image
         run: |
-          cosign sign ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}@${{ steps.image-build.outputs.digest }}
+          cosign sign --yes ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}@${{ steps.image-build.outputs.digest }}
