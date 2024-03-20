@@ -62,6 +62,7 @@ jobs:
             type=ref,event=tag
             type=ref,event=branch
             type=semver,pattern={{version}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build image
         id: image-build
