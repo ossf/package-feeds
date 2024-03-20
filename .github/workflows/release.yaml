@@ -79,4 +79,4 @@ jobs:
 
       - name: Sign the image
         run: |
-          cosign sign ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ steps.image-build.outputs.digest }}
+          cosign sign ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}@${{ steps.image-build.outputs.digest }}
