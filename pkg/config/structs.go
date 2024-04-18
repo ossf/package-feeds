@@ -3,7 +3,6 @@ package config
 import (
 	"github.com/ossf/package-feeds/pkg/events"
 	"github.com/ossf/package-feeds/pkg/feeds"
-	"github.com/ossf/package-feeds/pkg/publisher/httpclientpubsub"
 )
 
 type ScheduledFeedConfig struct {
@@ -24,9 +23,8 @@ type ScheduledFeedConfig struct {
 }
 
 type PublisherConfig struct {
-	Type             string                  `mapstructure:"type"`
-	Config           interface{}             `mapstructure:"config"`
-	HTTPClientConfig httpclientpubsub.Config `mapstructure:"http_client_config"`
+	Type   string      `mapstructure:"type"`
+	Config interface{} `mapstructure:"config"`
 }
 
 type FeedConfig struct {
