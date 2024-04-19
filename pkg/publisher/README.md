@@ -31,3 +31,11 @@ publisher:
         topic: packagefeeds
 ```
 
+### HTTP client
+
+```
+publisher:
+    type: http-client
+    config:
+      url: "http://target-server:8000/package_feeds_hook"
+```
