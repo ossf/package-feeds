@@ -1,0 +1,39 @@
+header:
+  schema-version: 1.0.0
+  expiration-date: '2023-10-09T00:00:00.000Z'
+  last-updated: '2023-10-09'
+  last-reviewed: '2023-10-09'
+  commit-hash: 0d8e23e9b2834671a41e3c7114e8536873658c47
+  project-url: https://github.com/ossf/package-feeds
+  license: https://github.com/ossf/package-feeds/blob/main/LICENSE
+
+project-lifecycle:
+  status: active
+  bug-fixes-only: false
+  core-maintainers:
+  - https://github.com/calebbrown
+  - https://github.com/maxfisher-g
+
+contribution-policy:
+  accepts-pull-requests: true
+  accepts-automated-pull-requests: true
+  code-of-conduct: https://github.com/ossf/package-feeds/blob/main/CODE_OF_CONDUCT.md
+
+distribution-points:
+- pkg:golang/github.com/ossf/package-feeds
+
+security-contacts:
+- type: email
+  value: oss-security@googlegroups.com
+  primary: true
+
+vulnerability-reporting:
+  accepts-vulnerability-reports: true
+  email-contact: oss-security@googlegroups.com
+  security-policy: https://github.com/ossf/package-feeds/blob/main/SECURITY.md
+  bug-bounty-available: false
+
+dependencies:
+  third-party-packages: true
+  dependencies-lists:
+  - https://github.com/ossf/package-feeds/blob/main/go.mod
