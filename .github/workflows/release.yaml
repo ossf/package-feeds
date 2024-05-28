@@ -35,7 +35,7 @@ jobs:
           cosign-release: 'v2.2.2'
 
       - name: Log into registry
-        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc
+        uses: docker/login-action@0d4c9c5ea7693da7b068278f7b52bda2a190a446
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
