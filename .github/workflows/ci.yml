@@ -57,17 +57,17 @@ jobs:
       - run: pip install -r requirements.txt
         working-directory: ./integration/test_consumer/
       - name: Build the stack
-        run: docker-compose -f docker-compose-integration.yml up -d
+        run: docker compose -f docker-compose-integration.yml up -d
         working-directory: ./integration
       - name: Run consumer python script
         run: python check_kafka_output.py
         working-directory: ./integration/test_consumer
       - name: Output filtered log (full log in artifacts)
-        run: docker-compose -f docker-compose-integration.yml logs feeds | grep -v "Sending package" | grep -v "Processing Package"
+        run: docker compose -f docker-compose-integration.yml logs feeds | grep -v "Sending package" | grep -v "Processing Package"
         working-directory: ./integration/
         if: ${{ always() }}
       - name: Dump logs for archive
-        run: docker-compose -f docker-compose-integration.yml logs feeds > feeds-log.txt
+        run: docker compose -f docker-compose-integration.yml logs feeds > feeds-log.txt
         working-directory: ./integration/
         if: ${{ always() }}
       - uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
