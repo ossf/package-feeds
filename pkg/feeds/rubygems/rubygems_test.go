@@ -126,7 +126,7 @@ func TestRubyGemsPartialNotFound(t *testing.T) {
 	}
 }
 
-func rubyGemsPackagesResponse(w http.ResponseWriter, r *http.Request) {
+func rubyGemsPackagesResponse(w http.ResponseWriter, _ *http.Request) {
 	_, err := w.Write([]byte(`
 [
 	{

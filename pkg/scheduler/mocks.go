@@ -23,7 +23,7 @@ func (feed mockFeed) GetFeedOptions() feeds.FeedOptions {
 	return feed.options
 }
 
-func (feed mockFeed) Latest(cutoff time.Time) ([]*feeds.Package, time.Time, []error) {
+func (feed mockFeed) Latest(_ time.Time) ([]*feeds.Package, time.Time, []error) {
 	return feed.packages, feed.cutoff, feed.errs
 }
 

@@ -14,7 +14,7 @@ func NewFeedGroupsHandler(feeds []*FeedGroup) *FeedGroupsHandler {
 	return &FeedGroupsHandler{feedGroups: feeds}
 }
 
-func (srv *FeedGroupsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (srv *FeedGroupsHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	resultChannel := make(chan groupResult, len(srv.feedGroups))
 	numPublished := 0
 	var pollErr, pubErr error
