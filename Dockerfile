@@ -1,6 +1,6 @@
 # Originally modified from the main Cloud Run documentation
 
-FROM golang:1.22.6-bookworm@sha256:f020456572fc292e9627b3fb435c6de5dfb8020fbcef1fd7b65dd092c0ac56bb AS builder
+FROM golang:1.23.0-bookworm@sha256:31dc846dd1bcca84d2fa231bcd16c09ff271bcc1a5ae2c48ff10f13b039688f3 AS builder
 
 # Create and change to the app directory.
 WORKDIR /app
