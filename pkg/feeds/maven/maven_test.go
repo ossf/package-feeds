@@ -74,7 +74,7 @@ func TestMavenNotFound(t *testing.T) {
 	}
 }
 
-func mavenPackageResponse(w http.ResponseWriter, r *http.Request) {
+func mavenPackageResponse(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	responseJSON := `
 	{

@@ -83,7 +83,7 @@ func TestGoproxyNotFound(t *testing.T) {
 	}
 }
 
-func goproxyPackageResponse(w http.ResponseWriter, r *http.Request) {
+func goproxyPackageResponse(w http.ResponseWriter, _ *http.Request) {
 	_, err := w.Write([]byte(`{"Path": "golang.org/x/foo","Version": "v0.3.0","Timestamp": "2019-04-10T19:08:52.997264Z"}
 {"Path": "golang.org/x/bar","Version": "v0.4.0","Timestamp": "2019-04-10T20:30:02.04035Z"}
 `))

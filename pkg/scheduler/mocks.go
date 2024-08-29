@@ -31,7 +31,7 @@ type mockPublisher struct {
 	sendCallback func(string) error
 }
 
-func (pub mockPublisher) Send(ctx context.Context, body []byte) error {
+func (pub mockPublisher) Send(_ context.Context, body []byte) error {
 	if pub.sendCallback != nil {
 		return pub.sendCallback(string(body))
 	}
