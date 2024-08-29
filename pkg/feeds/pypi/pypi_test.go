@@ -189,7 +189,7 @@ func TestPypiCriticalPartialNotFound(t *testing.T) {
 }
 
 // Mock data for pypi firehose with all packages.
-func updatesXMLHandle(w http.ResponseWriter, r *http.Request) {
+func updatesXMLHandle(w http.ResponseWriter, _ *http.Request) {
 	_, err := w.Write([]byte(`
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
@@ -222,7 +222,7 @@ func updatesXMLHandle(w http.ResponseWriter, r *http.Request) {
 
 // Mock data response for package specific api when pypi is configured with
 // a package list in FeedOptions.
-func foopyReleasesResponse(w http.ResponseWriter, r *http.Request) {
+func foopyReleasesResponse(w http.ResponseWriter, _ *http.Request) {
 	_, err := w.Write([]byte(`
 	<?xml version="1.0" encoding="UTF-8"?>
 	<rss version="2.0">
@@ -251,7 +251,7 @@ func foopyReleasesResponse(w http.ResponseWriter, r *http.Request) {
 
 // Mock data response for package specific api when pypi is configured with
 // a package list in FeedOptions.
-func barpyReleasesResponse(w http.ResponseWriter, r *http.Request) {
+func barpyReleasesResponse(w http.ResponseWriter, _ *http.Request) {
 	_, err := w.Write([]byte(`
 	<?xml version="1.0" encoding="UTF-8"?>
 	<rss version="2.0">

@@ -85,7 +85,7 @@ func TestCratesNotFound(t *testing.T) {
 	}
 }
 
-func cratesSummaryResponse(w http.ResponseWriter, r *http.Request) {
+func cratesSummaryResponse(w http.ResponseWriter, _ *http.Request) {
 	_, err := w.Write([]byte(`
 {
 	"just_updated": [

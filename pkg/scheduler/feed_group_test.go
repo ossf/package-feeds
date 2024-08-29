@@ -112,7 +112,7 @@ func TestFeedGroupPublishWithErr(t *testing.T) {
 	}
 	mockFeeds := []feeds.ScheduledFeed{}
 
-	mockPub := mockPublisher{sendCallback: func(msg string) error {
+	mockPub := mockPublisher{sendCallback: func(_ string) error {
 		return errPublishing
 	}}
 	var pub publisher.Publisher = mockPub

@@ -375,7 +375,7 @@ func TestNpmCriticalPartialNotFound(t *testing.T) {
 	}
 }
 
-func npmLatestPackagesResponse(w http.ResponseWriter, r *http.Request) {
+func npmLatestPackagesResponse(w http.ResponseWriter, _ *http.Request) {
 	_, err := w.Write([]byte(`
 <?xml version="1.0" encoding="UTF-8"?><rss>
     <channel>
@@ -425,7 +425,7 @@ func npmLatestPackagesResponse(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func fooVersionInfoResponse(w http.ResponseWriter, r *http.Request) {
+func fooVersionInfoResponse(w http.ResponseWriter, _ *http.Request) {
 	_, err := w.Write([]byte(`
 {
 	"name": "FooPackage",
@@ -447,7 +447,7 @@ func fooVersionInfoResponse(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func barVersionInfoResponse(w http.ResponseWriter, r *http.Request) {
+func barVersionInfoResponse(w http.ResponseWriter, _ *http.Request) {
 	_, err := w.Write([]byte(`
 {
 	"name": "BarPackage",
@@ -470,7 +470,7 @@ func barVersionInfoResponse(w http.ResponseWriter, r *http.Request) {
 
 // BazPackage has 2 entries in the registry rss, as such it should result
 // in both tags being resolved, in date order.
-func bazVersionInfoResponse(w http.ResponseWriter, r *http.Request) {
+func bazVersionInfoResponse(w http.ResponseWriter, _ *http.Request) {
 	_, err := w.Write([]byte(`
 {
 	"name": "BazPackage",
@@ -494,7 +494,7 @@ func bazVersionInfoResponse(w http.ResponseWriter, r *http.Request) {
 // the 'firehose' but a *feeds.Package{} should not be generated. Completely
 // unpublishing a package entails there's a minimum of 24hours before a new version
 // of it may be published.
-func quxVersionInfoResponse(w http.ResponseWriter, r *http.Request) {
+func quxVersionInfoResponse(w http.ResponseWriter, _ *http.Request) {
 	_, err := w.Write([]byte(`
 {
 	"name": "QuxPackage",
@@ -524,7 +524,7 @@ func quxVersionInfoResponse(w http.ResponseWriter, r *http.Request) {
 // were to happen for a single registry entry (count == 1), then the
 // `cutoff` should handle older than expected versions being mistakenly
 // processed, assuming it was not completely unpublished.
-func quuxVersionInfoResponse(w http.ResponseWriter, r *http.Request) {
+func quuxVersionInfoResponse(w http.ResponseWriter, _ *http.Request) {
 	_, err := w.Write([]byte(`
 {
 	"name": "QuuxPackage",
@@ -543,7 +543,7 @@ func quuxVersionInfoResponse(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func nonUtf8Response(w http.ResponseWriter, r *http.Request) {
+func nonUtf8Response(w http.ResponseWriter, _ *http.Request) {
 	_, err := w.Write([]byte(`
 <?xml version="1.0" encoding="UTF-8"?><rss>
     <channel>
@@ -563,7 +563,7 @@ func nonUtf8Response(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func nonXMLResponse(w http.ResponseWriter, r *http.Request) {
+func nonXMLResponse(w http.ResponseWriter, _ *http.Request) {
 	nonXMLChars := "\u0002\u0010\u0014\u0016\u001b\u0000"
 	xml := `
 <?xml version="1.0" encoding="UTF-8"?><rss version="2.0">

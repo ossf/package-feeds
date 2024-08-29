@@ -74,7 +74,7 @@ func TestCanParseFeed(t *testing.T) {
 	}
 }
 
-func indexMock(w http.ResponseWriter, r *http.Request) {
+func indexMock(w http.ResponseWriter, _ *http.Request) {
 	var err error
 	catalogEndpoint, err := makeTestURL("v3/catalog0/index.json")
 	if err != nil {
@@ -89,7 +89,7 @@ func indexMock(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func catalogMock(w http.ResponseWriter, r *http.Request) {
+func catalogMock(w http.ResponseWriter, _ *http.Request) {
 	var err error
 	pageEndpoint, err := makeTestURL("v3/catalog0/page1.json")
 	if err != nil {
@@ -104,7 +104,7 @@ func catalogMock(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func catalogPageMock(w http.ResponseWriter, r *http.Request) {
+func catalogPageMock(w http.ResponseWriter, _ *http.Request) {
 	var err error
 	pkgAdded := "nuget:PackageDetails"
 	pkgDeleted := "nuget:PackageDelete"
@@ -145,7 +145,7 @@ func catalogPageMock(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func packageDetailMock(w http.ResponseWriter, r *http.Request) {
+func packageDetailMock(w http.ResponseWriter, _ *http.Request) {
 	response := fmt.Sprintf(`{"id": "new.expected.package", "version": "0.0.1", "published": "%s"}`,
 		time.Now().UTC().Add(-1*time.Minute).Format(time.RFC3339))
 

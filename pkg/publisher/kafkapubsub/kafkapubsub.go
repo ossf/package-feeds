@@ -20,7 +20,7 @@ type Config struct {
 	Topic   string   `mapstructure:"topic"`
 }
 
-func New(ctx context.Context, brokers []string, topic string) (*KafkaPubSub, error) {
+func New(_ context.Context, brokers []string, topic string) (*KafkaPubSub, error) {
 	config := kafkapubsub.MinimalConfig()
 
 	pubSubTopic, err := kafkapubsub.OpenTopic(brokers, config, topic, nil)

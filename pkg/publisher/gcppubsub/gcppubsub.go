@@ -21,7 +21,7 @@ type Config struct {
 }
 
 func New(ctx context.Context, url string) (*GCPPubSub, error) {
-	topic, err := pubsub.OpenTopic(context.TODO(), url)
+	topic, err := pubsub.OpenTopic(ctx, url)
 	if err != nil {
 		return nil, err
 	}

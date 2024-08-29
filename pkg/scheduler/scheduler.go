@@ -38,7 +38,7 @@ type pollResult struct {
 }
 
 // healthCheckHandler is a simple health check handler for the HTTP server.
-func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+func healthCheckHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	// Define a simple JSON response structure
