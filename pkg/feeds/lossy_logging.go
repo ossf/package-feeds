@@ -1,8 +1,6 @@
 package feeds
 
 import (
-	"sort"
-
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ossf/package-feeds/pkg/events"
@@ -32,10 +30,7 @@ func (lfa *LossyFeedAlerter) ProcessPackages(feed string, packages []*Package) {
 	pkgs := make([]*Package, len(packages))
 	copy(pkgs, packages)
 
-	// Ensure packages are sorted by CreatedDate in order of most recent
-	sort.SliceStable(pkgs, func(i, j int) bool {
-		return pkgs[j].CreatedDate.Before(pkgs[i].CreatedDate)
-	})
+	SortPackages(pkgs)
 
 	previousPackages, ok := lfa.previousPackages[feed]
 	nonZeroResults := len(pkgs) > 0 && len(previousPackages) > 0

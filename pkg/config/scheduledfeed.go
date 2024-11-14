@@ -16,6 +16,7 @@ import (
 	"github.com/ossf/package-feeds/pkg/events"
 	"github.com/ossf/package-feeds/pkg/feeds"
 	"github.com/ossf/package-feeds/pkg/feeds/crates"
+	"github.com/ossf/package-feeds/pkg/feeds/github"
 	"github.com/ossf/package-feeds/pkg/feeds/goproxy"
 	"github.com/ossf/package-feeds/pkg/feeds/maven"
 	"github.com/ossf/package-feeds/pkg/feeds/npm"
@@ -175,6 +176,8 @@ func (fc FeedConfig) ToFeed(eventHandler *events.Handler) (feeds.ScheduledFeed, 
 	switch fc.Type {
 	case crates.FeedName:
 		return crates.New(fc.Options, eventHandler)
+	case github.FeedName:
+		return github.New(fc.Options)
 	case goproxy.FeedName:
 		return goproxy.New(fc.Options)
 	case npm.FeedName:
